@@ -32,11 +32,11 @@ export function renderMapView(container) {
       <!-- Contenedor del Mapa Leaflet -->
       <div id="map-container" class="w-full flex-1 z-0"></div>
 
-      <!-- BOTÓN DE PÁNICO FLOTANTE DE ALTA VISIBILIDAD (🚨 NECESITO UN WC AHORA) -->
-      <div class="absolute bottom-20 md:bottom-8 inset-x-0 flex justify-center z-[900] pointer-events-none px-4 ${previewWc ? 'hidden' : ''}">
+      <!-- BOTÓN DE PÁNICO FLOTANTE DE ALTA VISIBILIDAD (NUNCA tapado por el menú) -->
+      <div class="panic-floating-wrapper ${previewWc ? 'hidden' : ''}">
         <button
           id="floating-panic-btn"
-          class="pointer-events-auto bg-gradient-to-r from-red-600 via-rose-600 to-red-600 hover:from-red-500 hover:to-rose-500 text-white font-black text-sm sm:text-base px-6 py-3.5 rounded-2xl shadow-2xl flex items-center gap-3 border-2 border-rose-300/40 active:scale-95 transition-all"
+          class="font-black text-sm sm:text-base px-6 py-3.5 rounded-2xl shadow-2xl flex items-center gap-3 active:scale-95 transition-all"
         >
           <span class="text-2xl animate-bounce">🚨</span>
           <span class="tracking-wider">NECESITO UN WC AHORA</span>
@@ -44,7 +44,7 @@ export function renderMapView(container) {
       </div>
 
       <!-- Tarjeta Flotante Preview al Tocar un Marcador -->
-      <div id="map-preview-drawer" class="absolute bottom-20 md:bottom-6 inset-x-4 max-w-md mx-auto z-[1000] transition-all duration-300 ${previewWc ? 'translate-y-0 opacity-100' : 'translate-y-24 opacity-0 pointer-events-none'}">
+      <div id="map-preview-drawer" class="preview-drawer-wrapper transition-all duration-300 ${previewWc ? 'translate-y-0 opacity-100' : 'translate-y-24 opacity-0 pointer-events-none'}">
         ${previewWc ? renderPreviewCardHtml(previewWc) : ''}
       </div>
     </div>
@@ -82,8 +82,8 @@ export function renderMapView(container) {
       mapManager.init('map-container', (clickedWc) => {
         previewWc = clickedWc;
         const drawer = document.getElementById('map-preview-drawer');
-        const pBtn = document.getElementById('floating-panic-btn');
-        if (pBtn) pBtn.parentElement.classList.add('hidden');
+        const pWrapper = document.querySelector('.panic-floating-wrapper');
+        if (pWrapper) pWrapper.classList.add('hidden');
         if (drawer) {
           drawer.innerHTML = renderPreviewCardHtml(clickedWc);
           drawer.classList.remove('translate-y-24', 'opacity-0', 'pointer-events-none');
@@ -166,8 +166,8 @@ function attachPreviewEvents(drawer) {
       previewWc = null;
       drawer.classList.add('translate-y-24', 'opacity-0', 'pointer-events-none');
       drawer.classList.remove('translate-y-0', 'opacity-100');
-      const pBtn = document.getElementById('floating-panic-btn');
-      if (pBtn) pBtn.parentElement.classList.remove('hidden');
+      const pWrapper = document.querySelector('.panic-floating-wrapper');
+      if (pWrapper) pWrapper.classList.remove('hidden');
     });
   }
 }
