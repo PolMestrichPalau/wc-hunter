@@ -181,20 +181,9 @@
   </div>
 
   <!-- Orquestador Modular JS -->
-  <script type="module" src="js/app.js?v=3.5"></script>
+  <script type="module" src="js/app.js?v=4.0"></script>
 
-  <!-- Service Worker Registration -->
   <script>
-    if ('serviceWorker' in navigator) {
-      window.addEventListener('load', () => {
-        navigator.serviceWorker.register('sw.js')
-          .then(reg => {
-            reg.update();
-          })
-          .catch(err => console.log('SW skipped:', err));
-      });
-    }
-
     // Captura global de errores con mensaje claro si ocurre algún fallo
     window.addEventListener('error', (e) => {
       console.error('WC Hunter Runtime Error:', e.error || e.message);
