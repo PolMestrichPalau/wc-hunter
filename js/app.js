@@ -189,6 +189,31 @@ class App {
   }
 }
 
-document.addEventListener('DOMContentLoaded', () => {
-  window.wcHunterApp = new App();
-});
+function bootApp() {
+  if (window.wcHunterApp) return;
+  try {
+    window.wcHunterApp = new App();
+    console.log("✅ WC HUNTER V2.0 iniciado correctamente.");
+  } catch (err) {
+    console.error("❌ Error iniciando WC HUNTER:", err);
+    const container = document.getElementById('view-container');
+    if (container) {
+      container.innerHTML = `
+        <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;padding:24px;text-align:center;color:#fff;background:#080c14;">
+          <div style="font-size:48px;margin-bottom:12px;">🚽</div>
+          <h2 style="font-size:18px;font-weight:900;margin-bottom:8px;">WC HUNTER</h2>
+          <p style="font-size:12px;color:#94a3b8;margin-bottom:16px;">Ocurrió un error al cargar la vista. Pulsa para reintentar:</p>
+          <button onclick="window.location.reload(true)" style="background:#f59e0b;color:#000;font-weight:800;font-size:13px;padding:10px 20px;border-radius:12px;border:none;cursor:pointer;">
+            🔄 Recargar App
+          </button>
+        </div>
+      `;
+    }
+  }
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', bootApp);
+} else {
+  bootApp();
+}
