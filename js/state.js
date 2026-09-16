@@ -18,15 +18,17 @@ class Store {
       const saved = localStorage.getItem(STORAGE_KEY);
       if (saved) {
         const parsed = JSON.parse(saved);
-        this.wcs = parsed.wcs || INITIAL_WCS;
-        this.user = parsed.user || INITIAL_USER;
-        this.missions = parsed.missions || MISSIONS_LIST;
-        this.collections = parsed.collections || COLLECTIONS;
+        this.wcs = Array.isArray(parsed.wcs) && parsed.wcs.length > 0
+          ? parsed.wcs.map(w => this.normalizeWc(w))
+          : JSON.parse(JSON.stringify(INITIAL_WCS));
+        this.user = parsed.user && parsed.user.username ? parsed.user : JSON.parse(JSON.stringify(INITIAL_USER));
+        this.missions = Array.isArray(parsed.missions) && parsed.missions.length > 0 ? parsed.missions : JSON.parse(JSON.stringify(MISSIONS_LIST));
+        this.collections = Array.isArray(parsed.collections) && parsed.collections.length > 0 ? parsed.collections : JSON.parse(JSON.stringify(COLLECTIONS));
       } else {
         this.resetToDefaults();
       }
     } catch (e) {
-      console.warn('Error cargando estado de localStorage:', e);
+      console.warn('Error cargando estado de localStorage, restableciendo defaults:', e);
       this.resetToDefaults();
     }
 
@@ -47,6 +49,57 @@ class Store {
     this.missions = JSON.parse(JSON.stringify(MISSIONS_LIST));
     this.collections = JSON.parse(JSON.stringify(COLLECTIONS));
     this.saveState();
+  }
+
+  normalizeWc(wc) {
+    if (!wc) return null;
+    return {
+      id: wc.id || `wc_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
+      name: wc.name || 'WC sin nombre',
+      latitude: Number(wc.latitude) || 40.4168,
+      longitude: Number(wc.longitude) || -3.7038,
+      address: wc.address || 'Ubicación registrada',
+      city: wc.city || 'Madrid',
+      country: wc.country || 'España',
+      type: wc.type || 'other',
+      rarity: wc.rarity || 'COMMON',
+      difficulty: Number(wc.difficulty) || 3,
+      access_type: wc.access_type || 'free',
+      access_label: wc.access_label || '🆓 Gratuito',
+      price: Number(wc.price) || 0,
+      opening_hours: wc.opening_hours || 'Horario no especificado',
+      equipment: {
+        paper: wc.equipment?.paper ?? true,
+        soap: wc.equipment?.soap ?? true,
+        water: wc.equipment?.water ?? true,
+        mirror: wc.equipment?.mirror ?? true,
+        dryer: wc.equipment?.dryer ?? false,
+        baby_changing: wc.equipment?.baby_changing ?? false,
+        wheelchair: wc.equipment?.wheelchair ?? false,
+        bidet: wc.equipment?.bidet ?? false,
+        lock_functional: wc.equipment?.lock_functional ?? true
+      },
+      score: Number(wc.score) || 80,
+      score_breakdown: wc.score_breakdown || {
+        cleanliness: 80,
+        odor: 80,
+        paper: 80,
+        soap: 80,
+        privacy: 80,
+        condition: 80,
+        price: 80
+      },
+      confidence: Number(wc.confidence) || 85,
+      current_status: wc.current_status || 'open',
+      personality_tag: wc.personality_tag || '🚽 EL TRONO',
+      personality_desc: wc.personality_desc || '',
+      last_verified_at: wc.last_verified_at || new Date().toISOString(),
+      would_return_ratio: wc.would_return_ratio || { yes: 10, no: 1 },
+      is_secret: Boolean(wc.is_secret),
+      photos: Array.isArray(wc.photos) ? wc.photos : [],
+      discovered_by: wc.discovered_by || 'PolM',
+      reviews_count: Number(wc.reviews_count) || 5
+    };
   }
 
   saveState() {
