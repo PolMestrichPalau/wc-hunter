@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <meta name="theme-color" content="#0b0f19">
+  <meta name="theme-color" content="#080c14">
   <meta name="description" content="WC Hunter — No busques un WC. Busca un WC que quieras usar. La mayor base de datos colaborativa y gamificada de WC reales.">
   <title>WC HUNTER — Encuentra, Valora, Caza</title>
 
@@ -20,12 +20,12 @@
         extend: {
           colors: {
             hunter: {
-              bg: '#0b0f19',
-              card: '#151d2f',
-              cardHover: '#1e293b',
+              app: '#080c14',
+              sidebar: '#0f172a',
+              surface: '#111827',
               gold: '#f59e0b',
               clean: '#10b981',
-              panic: '#f43f5e',
+              panic: '#ef4444',
               secret: '#a855f7'
             }
           }
@@ -43,48 +43,124 @@
 </head>
 <body class="bg-slate-950 select-none">
 
-  <!-- Shell principal de la aplicación móvil -->
-  <div id="app-shell" class="relative">
+  <!-- Layout Principal Adaptativo (Desktop Dual-Pane + Mobile Fullscreen) -->
+  <div id="app-layout">
     
-    <!-- Contenedor de Notificaciones Toast -->
-    <div id="toast-container"></div>
+    <!-- Sidebar para Escritorio (Oculta en móvil) -->
+    <aside id="desktop-sidebar">
+      <!-- Logo y Marca -->
+      <div class="mb-6 flex items-center gap-3">
+        <div class="w-10 h-10 rounded-2xl bg-amber-500/20 border-2 border-amber-500 flex items-center justify-center text-2xl shadow-lg shadow-amber-500/20">
+          🚽
+        </div>
+        <div>
+          <h1 class="text-base font-black text-white tracking-wider leading-none">WC HUNTER</h1>
+          <p class="text-[11px] text-amber-400 font-bold mt-1">V2.0 Explorer</p>
+        </div>
+      </div>
 
-    <!-- Contenedor de la Vista Activa -->
-    <main id="view-container" class="w-full h-full flex-1 relative"></main>
+      <!-- Tagline -->
+      <div class="p-3 bg-slate-900/80 rounded-2xl border border-slate-800 mb-6">
+        <p class="text-xs text-slate-300 font-semibold leading-snug">
+          "No busques un WC. Busca un WC que quieras usar."
+        </p>
+      </div>
 
-    <!-- Contenedor del Modal Ficha WC -->
-    <div id="modal-container"></div>
+      <!-- Enlaces de Navegación Lateral -->
+      <nav class="flex flex-col gap-1.5 flex-1">
+        <button class="sidebar-link active" data-tab="map">
+          <span class="text-xl">🗺️</span>
+          <span>Mapa Exploratorio</span>
+        </button>
 
-    <!-- Contenedor del Modal Añadir WC -->
-    <div id="add-modal-container"></div>
+        <button class="sidebar-link" data-tab="near">
+          <span class="text-xl">🚨</span>
+          <span>Necesito WC / Cerca</span>
+        </button>
 
-    <!-- Barra de Navegación Inferior (5 Pestañas Fundamentales) -->
-    <nav id="bottom-nav">
-      <button class="nav-tab-btn active" data-tab="map" title="Mapa de WC">
-        <span class="nav-icon">🗺️</span>
-        <span>MAPA</span>
-      </button>
+        <button class="sidebar-link" data-tab="rankings">
+          <span class="text-xl">🏆</span>
+          <span>Rankings Top</span>
+        </button>
 
-      <button class="nav-tab-btn" data-tab="near" title="WC Cercanos y Emergencia">
-        <span class="nav-icon">📍</span>
-        <span>CERCA</span>
-      </button>
+        <button class="sidebar-link" data-tab="hunter">
+          <span class="text-xl">💩</span>
+          <span>Hunter & Colección</span>
+        </button>
 
-      <button class="nav-tab-btn" data-tab="rankings" title="Rankings de la Comunidad">
-        <span class="nav-icon">🏆</span>
-        <span>RANKING</span>
-      </button>
+        <button class="sidebar-link" data-tab="profile">
+          <span class="text-xl">👤</span>
+          <span>Mi Perfil & Récords</span>
+        </button>
+      </nav>
 
-      <button class="nav-tab-btn" data-tab="hunter" title="Misiones, Colección y Logros">
-        <span class="nav-icon">💩</span>
-        <span>HUNTER</span>
-      </button>
+      <!-- Botón de Añadir WC en Sidebar -->
+      <div class="pt-4 border-t border-slate-800/80 flex flex-col gap-3">
+        <button id="sidebar-add-wc-btn" class="w-full bg-gradient-to-r from-amber-500 to-yellow-400 hover:from-amber-600 hover:to-yellow-500 text-slate-950 font-black text-xs py-3 px-4 rounded-xl shadow-lg transition flex items-center justify-center gap-2 active:scale-95">
+          <span>➕</span>
+          <span>Descubrir Nuevo WC</span>
+        </button>
 
-      <button class="nav-tab-btn" data-tab="profile" title="Tu Perfil y Título">
-        <span class="nav-icon">👤</span>
-        <span>PERFIL</span>
-      </button>
-    </nav>
+        <!-- Mini-Widget del Usuario Hunter -->
+        <div id="sidebar-user-card" class="bg-slate-900/90 rounded-2xl p-3 border border-slate-800 flex items-center justify-between">
+          <div class="flex items-center gap-2.5">
+            <span class="text-2xl" id="sidebar-avatar">🧔‍♂️</span>
+            <div class="min-w-0">
+              <h4 class="text-xs font-black text-white truncate" id="sidebar-username">PolM</h4>
+              <p class="text-[10px] text-amber-400 font-bold truncate" id="sidebar-title">Duque del Retrete</p>
+            </div>
+          </div>
+          <span class="text-xs font-black text-orange-400 flex items-center gap-1 bg-orange-950/40 px-2 py-1 rounded-lg border border-orange-500/30" id="sidebar-streak">
+            🔥 7d
+          </span>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Viewport Principal de Contenido -->
+    <div id="main-viewport">
+      
+      <!-- Contenedor de Notificaciones Toast -->
+      <div id="toast-container"></div>
+
+      <!-- Contenedor Dinámico de la Vista Activa -->
+      <main id="view-container"></main>
+
+      <!-- Modal Ficha de WC Completa -->
+      <div id="modal-container"></div>
+
+      <!-- Modal Formulario Añadir WC -->
+      <div id="add-modal-container"></div>
+
+      <!-- Barra de Navegación Inferior Móvil (Dock) -->
+      <nav id="bottom-nav">
+        <button class="nav-tab-btn active" data-tab="map" title="Mapa">
+          <span class="nav-icon">🗺️</span>
+          <span>MAPA</span>
+        </button>
+
+        <button class="nav-tab-btn" data-tab="near" title="Cerca">
+          <span class="nav-icon">🚨</span>
+          <span>NECESITO WC</span>
+        </button>
+
+        <button class="nav-tab-btn" data-tab="rankings" title="Rankings">
+          <span class="nav-icon">🏆</span>
+          <span>RANKING</span>
+        </button>
+
+        <button class="nav-tab-btn" data-tab="hunter" title="Hunter">
+          <span class="nav-icon">💩</span>
+          <span>HUNTER</span>
+        </button>
+
+        <button class="nav-tab-btn" data-tab="profile" title="Perfil">
+          <span class="nav-icon">👤</span>
+          <span>PERFIL</span>
+        </button>
+      </nav>
+
+    </div>
   </div>
 
   <!-- Orquestador Modular JS -->
