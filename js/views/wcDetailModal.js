@@ -1,8 +1,10 @@
 /**
- * WC HUNTER — Ficha Detallada del WC & Verificación en 5 Segundos
+ * WC HUNTER — Ficha Detallada del WC V2.0
+ * Ficha estructurada en los 4 Pilares: Calidad, Estado, Fiabilidad y Volvería.
  */
 import { store } from '../state.js';
-import { getStatusSemantic, formatRelativeTime } from '../algorithms.js';
+import { getSemanticStatus, formatWouldReturn, formatAccessBadge, formatRelativeTime, getScoreRatingText } from '../engines/wcEngine.js';
+import { evaluateRarity } from '../engines/gameEngine.js';
 
 export function renderWcDetailModal(container) {
   const wc = store.selectedWc;
@@ -11,240 +13,227 @@ export function renderWcDetailModal(container) {
     return;
   }
 
-  const semantic = getStatusSemantic(wc);
-  const b = wc.score_breakdown || {
-    cleanliness: 80,
-    paper: 80,
-    soap: 80,
-    odor: 80,
-    privacy: 80,
-    condition: 80,
-    price: 80
-  };
-
-  const totalReturnVotes = (wc.would_return_ratio?.yes || 1) + (wc.would_return_ratio?.no || 0);
-  const yesPercent = Math.round(((wc.would_return_ratio?.yes || 1) / totalReturnVotes) * 100);
+  const semantic = getSemanticStatus(wc);
+  const wouldRet = formatWouldReturn(wc.would_return_ratio);
+  const access = formatAccessBadge(wc);
+  const rarityInfo = evaluateRarity(wc);
+  const b = wc.score_breakdown || { cleanliness: 90, odor: 80, paper: 95, soap: 90, privacy: 85 };
 
   container.innerHTML = `
-    <div class="fixed inset-0 z-[2000] bg-slate-950/80 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 transition-all">
-      <div class="bg-slate-900 border border-slate-700/80 w-full sm:max-w-lg max-h-[92vh] rounded-t-3xl sm:rounded-3xl shadow-2xl flex flex-col overflow-hidden animate-slide-up">
+    <div class="fixed inset-0 z-[2000] bg-slate-950/85 backdrop-blur-md flex items-end sm:items-center justify-center p-0 sm:p-4">
+      <div class="bg-slate-900 border border-slate-700/80 w-full sm:max-w-xl max-h-[92vh] rounded-t-3xl sm:rounded-3xl shadow-2xl flex flex-col overflow-hidden animate-slide-up">
         
-        <!-- Barra de Cabecera Modal con Drag Handle -->
-        <div class="sticky top-0 z-10 bg-slate-900/95 backdrop-blur-md px-5 pt-3 pb-3 border-b border-slate-800 flex items-center justify-between">
+        <!-- Cabecera de Ficha -->
+        <div class="sticky top-0 z-10 bg-slate-900/95 backdrop-blur-md px-6 pt-4 pb-3 border-b border-slate-800 flex items-center justify-between">
           <div class="flex items-center gap-2">
-            <span class="rarity-badge ${wc.rarity}">${wc.rarity}</span>
-            <span class="text-xs font-black text-amber-400 bg-slate-800 px-2 py-0.5 rounded-md border border-slate-700">
-              🎯 Dif: ${wc.difficulty}/10
+            <span class="rarity-pill ${wc.rarity}">${wc.rarity}</span>
+            <span class="text-xs font-black text-amber-400 bg-slate-800 px-2 py-0.5 rounded-lg border border-slate-700">
+              🎯 Dif. ${rarityInfo.difficulty}/10
             </span>
-            ${wc.is_secret ? `<span class="bg-purple-900 text-purple-200 text-[10px] font-black px-2 py-0.5 rounded-md">🔐 SECRETO</span>` : ''}
+            ${wc.is_secret ? `<span class="bg-purple-950 text-purple-300 text-[10px] font-black px-2 py-0.5 rounded-lg border border-purple-500/40">🔐 SECRETO</span>` : ''}
           </div>
-          <button id="close-detail-modal-btn" class="w-8 h-8 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-300 flex items-center justify-center font-bold text-sm transition">
+          <button id="close-detail-modal-btn" class="w-8 h-8 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-300 flex items-center justify-center font-black text-sm transition">
             ✕
           </button>
         </div>
 
         <!-- Contenido Scrollable -->
-        <div class="overflow-y-auto p-5 flex flex-col gap-4 text-slate-100">
+        <div class="overflow-y-auto px-6 py-5 flex flex-col gap-4 text-slate-100">
           
-          <!-- Título y Localización -->
+          <!-- Título y Ubicación -->
           <div>
-            <h1 class="text-xl font-black text-white leading-tight">${wc.name}</h1>
-            <p class="text-xs text-slate-400 mt-1 flex items-center gap-1">
+            <h1 class="text-xl sm:text-2xl font-black text-white leading-tight">${wc.name}</h1>
+            <p class="text-xs text-slate-400 mt-1 flex items-center gap-1.5">
               <span>📍</span> <span>${wc.address}, ${wc.city}</span>
             </p>
           </div>
 
-          <!-- Dual Score Card: WC Score + Confidence -->
-          <div class="grid grid-cols-2 gap-3">
-            <div class="bg-slate-800/90 border border-slate-700 rounded-2xl p-3.5 flex flex-col items-center text-center">
-              <span class="text-[10px] font-black uppercase text-slate-400 tracking-wider">WC SCORE</span>
-              <div class="text-3xl font-black ${wc.score >= 85 ? 'text-emerald-400' : (wc.score >= 70 ? 'text-amber-400' : 'text-rose-400')} my-1">
-                ${wc.score}<span class="text-xs text-slate-500 font-normal">/100</span>
-              </div>
-              <span class="text-[11px] font-bold text-slate-300">${wc.score >= 85 ? 'Excelente' : (wc.score >= 70 ? 'Aceptable' : 'Poco recomendable')}</span>
-            </div>
-
-            <div class="bg-slate-800/90 border border-slate-700 rounded-2xl p-3.5 flex flex-col items-center text-center">
-              <span class="text-[10px] font-black uppercase text-slate-400 tracking-wider">CONFIANZA VIGENTE</span>
-              <div class="text-3xl font-black text-amber-400 my-1">
-                ${wc.confidence}<span class="text-xs text-slate-500 font-normal">%</span>
-              </div>
-              <span class="text-[11px] font-bold text-slate-300 flex items-center gap-1">
-                <span class="w-2 h-2 rounded-full ${semantic.dotClass}"></span>
-                <span>${formatRelativeTime(wc.last_verified_at)}</span>
-              </span>
-            </div>
-          </div>
-
-          <!-- Banner Crítico de Acceso -->
-          <div class="bg-gradient-to-r from-amber-950/40 to-slate-800 border-2 border-amber-500/50 rounded-2xl p-3.5 flex items-center justify-between">
+          <!-- 1. INFORMACIÓN DE ACCESO (Prioritaria arriba de todo) -->
+          <div class="p-3.5 rounded-2xl border ${access.bgClass} flex items-center justify-between">
             <div class="flex items-center gap-3">
-              <span class="text-2xl">
-                ${wc.access_type === 'free' ? '🆓' : (wc.access_type === 'customers_only' ? '🍔' : (wc.access_type === 'key_required' ? '🔑' : '💰'))}
-              </span>
+              <span class="text-2xl">${access.icon}</span>
               <div>
-                <span class="text-[10px] font-black text-amber-400 uppercase tracking-wider block">INFORMACIÓN DE ACCESO</span>
-                <span class="text-sm font-black text-white">${wc.access_label}</span>
+                <span class="text-[10px] font-black uppercase tracking-wider text-slate-400 block">CONDICIONES DE ACCESO</span>
+                <span class="text-sm font-black text-white">${access.type} · ${access.cost}</span>
+                <p class="text-xs ${access.colorClass} font-semibold mt-0.5">${access.requirement}</p>
               </div>
             </div>
-            <span class="text-xs text-slate-300 font-bold bg-slate-900 px-2.5 py-1 rounded-xl border border-slate-700">
+            <span class="text-xs text-slate-300 font-bold bg-slate-900/80 px-3 py-1.5 rounded-xl border border-slate-800">
               ${wc.opening_hours}
             </span>
           </div>
 
-          <!-- Personalidad Humorística del WC -->
-          ${wc.personality_tag ? `
-            <div class="bg-indigo-950/40 border border-indigo-500/30 rounded-2xl p-3 flex items-start gap-2.5">
-              <span class="text-xl flex-shrink-0">🎭</span>
-              <div>
-                <h4 class="text-xs font-black text-indigo-300 uppercase">${wc.personality_tag}</h4>
-                <p class="text-xs text-slate-300 mt-0.5 leading-relaxed">${wc.personality_desc}</p>
+          <!-- 2. LOS 4 PILARES: CALIDAD, ESTADO, FIABILIDAD Y VOLVERÍA -->
+          <div class="grid grid-cols-2 gap-3">
+            
+            <!-- Pilar 1: CALIDAD (WC SCORE) -->
+            <div class="bg-slate-800/80 border border-slate-700/80 rounded-2xl p-4 flex flex-col items-center text-center">
+              <span class="text-[10px] font-black uppercase text-slate-400 tracking-wider">CALIDAD WC SCORE</span>
+              <div class="text-4xl font-black ${wc.score >= 85 ? 'text-emerald-400' : (wc.score >= 70 ? 'text-amber-400' : 'text-rose-400')} my-1.5">
+                ${wc.score}<span class="text-xs text-slate-500 font-normal">/100</span>
+              </div>
+              <span class="text-xs font-black text-white tracking-wide uppercase">
+                ${getScoreRatingText(wc.score)}
+              </span>
+            </div>
+
+            <!-- Pilar 2: ESTADO ACTUAL -->
+            <div class="bg-slate-800/80 border border-slate-700/80 rounded-2xl p-4 flex flex-col items-center text-center">
+              <span class="text-[10px] font-black uppercase text-slate-400 tracking-wider">ESTADO ACTUAL</span>
+              <div class="my-auto flex flex-col items-center">
+                <span class="text-base font-black ${semantic.color === 'green' ? 'text-emerald-400' : (semantic.color === 'red' ? 'text-rose-400' : 'text-amber-400')} mt-2">
+                  ${semantic.label}
+                </span>
+                <span class="text-xs text-slate-400 font-semibold mt-1">
+                  Verificado ${formatRelativeTime(wc.last_verified_at)}
+                </span>
               </div>
             </div>
-          ` : ''}
 
-          <!-- Desglose de Puntuación (Bar Chart) -->
-          <div class="bg-slate-800/80 border border-slate-700/70 rounded-2xl p-4 flex flex-col gap-2.5">
-            <h3 class="text-xs font-black text-slate-300 uppercase tracking-wider">Desglose de Calidad</h3>
+            <!-- Pilar 3: FIABILIDAD -->
+            <div class="bg-slate-800/80 border border-slate-700/80 rounded-2xl p-4 flex flex-col items-center text-center">
+              <span class="text-[10px] font-black uppercase text-slate-400 tracking-wider">FIABILIDAD</span>
+              <div class="text-3xl font-black text-blue-400 my-1">
+                ${wc.confidence}<span class="text-xs text-slate-500 font-normal">%</span>
+              </div>
+              <span class="text-[11px] text-slate-300 font-semibold">
+                🛡️ Información verificada
+              </span>
+            </div>
 
-            <div class="flex flex-col gap-2 text-xs">
-              <div class="flex items-center justify-between">
-                <span class="flex items-center gap-1.5 font-bold text-slate-300"><span>🧼</span> Limpieza</span>
-                <span class="font-extrabold ${b.cleanliness >= 80 ? 'text-emerald-400' : 'text-amber-400'}">${b.cleanliness}</span>
+            <!-- Pilar 4: VOLVERÍA -->
+            <div class="bg-slate-800/80 border border-slate-700/80 rounded-2xl p-4 flex flex-col items-center text-center">
+              <span class="text-[10px] font-black uppercase text-slate-400 tracking-wider">REPETICIÓN</span>
+              <div class="text-3xl font-black text-emerald-400 my-1">
+                ${wouldRet.percent}<span class="text-xs text-slate-500 font-normal">%</span>
               </div>
-              <div class="w-full h-2 bg-slate-900 rounded-full overflow-hidden">
-                <div class="h-full bg-emerald-500 rounded-full" style="width: ${b.cleanliness}%"></div>
-              </div>
+              <span class="text-[11px] text-slate-300 font-semibold">
+                👍 Volvería a usarlo
+              </span>
+            </div>
+          </div>
 
-              <div class="flex items-center justify-between mt-1">
-                <span class="flex items-center gap-1.5 font-bold text-slate-300"><span>🧻</span> Papel Higiénico</span>
-                <span class="font-extrabold ${b.paper >= 80 ? 'text-emerald-400' : 'text-amber-400'}">${b.paper}</span>
-              </div>
-              <div class="w-full h-2 bg-slate-900 rounded-full overflow-hidden">
-                <div class="h-full bg-amber-500 rounded-full" style="width: ${b.paper}%"></div>
-              </div>
+          <!-- Frase Humana de Repetición -->
+          <div class="bg-emerald-950/30 border border-emerald-500/30 rounded-2xl p-3 flex items-center justify-between">
+            <span class="text-xs font-black text-emerald-300 flex items-center gap-2">
+              <span class="text-base">👍</span>
+              <span>${wouldRet.sentence}</span>
+            </span>
+            <span class="text-[11px] text-slate-400 font-bold">
+              ${wouldRet.yesCount} de ${wouldRet.total} cazadores
+            </span>
+          </div>
 
-              <div class="flex items-center justify-between mt-1">
-                <span class="flex items-center gap-1.5 font-bold text-slate-300"><span>🧴</span> Jabón & Agua</span>
-                <span class="font-extrabold text-slate-200">${b.soap}</span>
-              </div>
-              <div class="w-full h-2 bg-slate-900 rounded-full overflow-hidden">
-                <div class="h-full bg-cyan-500 rounded-full" style="width: ${b.soap}%"></div>
-              </div>
+          <!-- Desglose Limpio de Calidad -->
+          <div class="bg-slate-800/60 border border-slate-700/60 rounded-2xl p-4 flex flex-col gap-2.5">
+            <h3 class="text-xs font-black text-slate-400 uppercase tracking-wider">Variables de Calidad</h3>
 
-              <div class="flex items-center justify-between mt-1">
-                <span class="flex items-center gap-1.5 font-bold text-slate-300"><span>🔒</span> Privacidad</span>
-                <span class="font-extrabold text-slate-200">${b.privacy}</span>
+            <div class="grid grid-cols-2 gap-2 text-xs font-bold">
+              <div class="bg-slate-900/60 p-2.5 rounded-xl border border-slate-800 flex items-center justify-between">
+                <span class="text-slate-300">🧼 Limpieza</span>
+                <span class="${b.cleanliness >= 80 ? 'text-emerald-400' : 'text-amber-400'} font-black">${b.cleanliness}/100</span>
               </div>
-              <div class="w-full h-2 bg-slate-900 rounded-full overflow-hidden">
-                <div class="h-full bg-purple-500 rounded-full" style="width: ${b.privacy}%"></div>
+              <div class="bg-slate-900/60 p-2.5 rounded-xl border border-slate-800 flex items-center justify-between">
+                <span class="text-slate-300">👃 Olor</span>
+                <span class="${b.odor >= 80 ? 'text-emerald-400' : 'text-amber-400'} font-black">${b.odor}/100</span>
+              </div>
+              <div class="bg-slate-900/60 p-2.5 rounded-xl border border-slate-800 flex items-center justify-between">
+                <span class="text-slate-300">🧻 Papel Higiénico</span>
+                <span class="${b.paper >= 80 ? 'text-emerald-400' : 'text-rose-400'} font-black">${b.paper}/100</span>
+              </div>
+              <div class="bg-slate-900/60 p-2.5 rounded-xl border border-slate-800 flex items-center justify-between">
+                <span class="text-slate-300">🧴 Jabón y Agua</span>
+                <span class="text-slate-200 font-black">${b.soap}/100</span>
+              </div>
+              <div class="bg-slate-900/60 p-2.5 rounded-xl border border-slate-800 flex items-center justify-between col-span-2">
+                <span class="text-slate-300">🔒 Privacidad y Cerrojo</span>
+                <span class="text-slate-200 font-black">${b.privacy}/100</span>
               </div>
             </div>
           </div>
 
-          <!-- Métrica "¿Volverías a usarlo?" -->
-          <div class="bg-slate-800/80 border border-slate-700/70 rounded-2xl p-4 flex flex-col gap-2">
+          <!-- Rareza vs Dificultad (Conceptos Separados) -->
+          <div class="bg-slate-800/60 border border-slate-700/60 rounded-2xl p-4 flex flex-col gap-2">
             <div class="flex items-center justify-between">
-              <span class="text-xs font-black text-slate-300 uppercase tracking-wider">¿Volverías a usar este WC?</span>
-              <span class="text-xs font-black text-emerald-400">👍 ${yesPercent}% Sí</span>
+              <span class="text-xs font-black uppercase tracking-wider text-slate-400">Rareza del WC</span>
+              <span class="text-xs font-black text-amber-400">${rarityInfo.rarityScore}</span>
             </div>
-            <div class="w-full h-3 bg-slate-900 rounded-full overflow-hidden flex border border-slate-700">
-              <div class="bg-emerald-500 h-full" style="width: ${yesPercent}%"></div>
-              <div class="bg-rose-500 h-full" style="width: ${100 - yesPercent}%"></div>
-            </div>
-            <div class="flex justify-between text-[10px] text-slate-400 font-semibold">
-              <span>${wc.would_return_ratio?.yes || 1} cazadores volverían</span>
-              <span>${wc.would_return_ratio?.no || 0} no volverían</span>
+            <p class="text-xs text-slate-300 leading-relaxed">${rarityInfo.description}</p>
+            ${rarityInfo.communityQuote ? `
+              <p class="text-[11px] font-black text-amber-300/90 italic">"${rarityInfo.communityQuote}"</p>
+            ` : ''}
+            <div class="text-[10px] text-slate-500 font-semibold border-t border-slate-700/50 pt-1.5 mt-1">
+              💡 La rareza mide la exclusividad y dificultad de registro, no su limpieza o confort.
             </div>
           </div>
 
           <!-- WIDGET DE ACTUALIZACIÓN RÁPIDA (5 SEGUNDOS) -->
-          <div id="quick-verify-section" class="bg-gradient-to-b from-slate-800 to-slate-900 border-2 border-emerald-500/60 rounded-3xl p-4 shadow-xl flex flex-col gap-3">
+          <div id="quick-verify-box" class="bg-gradient-to-b from-slate-800 to-slate-900 border-2 border-emerald-500/50 rounded-2xl p-4 shadow-xl flex flex-col gap-3">
             <div class="flex items-center justify-between">
               <div class="flex items-center gap-2">
-                <span class="text-xl">⚡</span>
+                <span class="text-lg">⚡</span>
                 <h3 class="text-sm font-black text-white">¿Cómo está ahora mismo?</h3>
               </div>
               <span class="text-xs font-black text-amber-400 bg-amber-400/10 px-2 py-0.5 rounded-md border border-amber-400/20">
                 +15 XP
               </span>
             </div>
-            <p class="text-[11px] text-slate-400">Ayuda a la comunidad confirmando el estado en 5 segundos:</p>
 
-            <form id="quick-verify-form" class="flex flex-col gap-3">
-              <!-- Estado Abierto / Cerrado -->
-              <div class="flex items-center justify-between">
-                <span class="text-xs font-bold text-slate-300">Estado</span>
+            <form id="v2-verify-form" class="flex flex-col gap-2.5">
+              <div class="flex items-center justify-between text-xs">
+                <span class="font-bold text-slate-300">Estado</span>
                 <div class="flex gap-1.5">
-                  <button type="button" data-verif-status="open" class="verify-btn active">🟢 Abierto</button>
-                  <button type="button" data-verif-status="closed" class="verify-btn">🔴 Cerrado</button>
+                  <button type="button" data-v2-status="open" class="verify-btn active">🟢 Abierto</button>
+                  <button type="button" data-v2-status="closed" class="verify-btn">🔴 Cerrado</button>
                 </div>
               </div>
 
-              <!-- ¿Hay papel? -->
-              <div class="flex items-center justify-between">
-                <span class="text-xs font-bold text-slate-300">¿Hay papel?</span>
+              <div class="flex items-center justify-between text-xs">
+                <span class="font-bold text-slate-300">¿Hay papel?</span>
                 <div class="flex gap-1.5">
-                  <button type="button" data-verif-paper="true" class="verify-btn ${wc.equipment.paper ? 'active' : ''}">✅ Sí</button>
-                  <button type="button" data-verif-paper="false" class="verify-btn ${!wc.equipment.paper ? 'active' : ''}">❌ No</button>
+                  <button type="button" data-v2-paper="true" class="verify-btn ${wc.equipment.paper ? 'active' : ''}">✅ Sí</button>
+                  <button type="button" data-v2-paper="false" class="verify-btn ${!wc.equipment.paper ? 'active' : ''}">❌ No</button>
                 </div>
               </div>
 
-              <!-- ¿Hay jabón? -->
-              <div class="flex items-center justify-between">
-                <span class="text-xs font-bold text-slate-300">¿Hay jabón?</span>
+              <div class="flex items-center justify-between text-xs">
+                <span class="font-bold text-slate-300">¿Hay jabón?</span>
                 <div class="flex gap-1.5">
-                  <button type="button" data-verif-soap="true" class="verify-btn ${wc.equipment.soap ? 'active' : ''}">✅ Sí</button>
-                  <button type="button" data-verif-soap="false" class="verify-btn ${!wc.equipment.soap ? 'active' : ''}">❌ No</button>
+                  <button type="button" data-v2-soap="true" class="verify-btn ${wc.equipment.soap ? 'active' : ''}">✅ Sí</button>
+                  <button type="button" data-v2-soap="false" class="verify-btn ${!wc.equipment.soap ? 'active' : ''}">❌ No</button>
                 </div>
               </div>
 
-              <!-- ¿Limpieza? -->
-              <div class="flex items-center justify-between">
-                <span class="text-xs font-bold text-slate-300">Limpieza</span>
+              <div class="flex items-center justify-between text-xs">
+                <span class="font-bold text-slate-300">Limpieza</span>
                 <div class="flex gap-1.5">
-                  <button type="button" data-verif-clean="clean" class="verify-btn active">🧼 Limpio</button>
-                  <button type="button" data-verif-clean="normal" class="verify-btn">😐 Normal</button>
-                  <button type="button" data-verif-clean="dirty" class="verify-btn">🤢 Sucio</button>
+                  <button type="button" data-v2-clean="clean" class="verify-btn active">🧼 Limpio</button>
+                  <button type="button" data-v2-clean="normal" class="verify-btn">😐 Pasable</button>
+                  <button type="button" data-v2-clean="dirty" class="verify-btn">🤢 Sucio</button>
                 </div>
               </div>
 
-              <!-- ¿Volverías? -->
-              <div class="flex items-center justify-between">
-                <span class="text-xs font-bold text-slate-300">¿Volverías?</span>
-                <div class="flex gap-1.5">
-                  <button type="button" data-verif-return="true" class="verify-btn active">👍 Sí</button>
-                  <button type="button" data-verif-return="false" class="verify-btn">👎 No</button>
-                </div>
-              </div>
-
-              <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white font-black text-sm py-3 rounded-2xl shadow-lg transition mt-2 flex items-center justify-center gap-2">
-                <span>🛡️</span> <span>Confirmar Verificación (+15 XP)</span>
+              <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white font-black text-xs py-3 rounded-xl shadow transition mt-1 flex items-center justify-center gap-1.5">
+                <span>🛡️</span>
+                <span>Confirmar Verificación (+15 XP)</span>
               </button>
             </form>
           </div>
 
-          <!-- Galería de Fotos -->
-          ${wc.photos && wc.photos.length > 0 ? `
-            <div class="bg-slate-800/80 border border-slate-700/70 rounded-2xl p-4 flex flex-col gap-2">
-              <h3 class="text-xs font-black text-slate-300 uppercase tracking-wider">Fotografías de la Comunidad</h3>
-              <div class="grid grid-cols-2 gap-2 mt-1">
-                ${wc.photos.map(p => `
-                  <div class="relative rounded-xl overflow-hidden border border-slate-700 shadow aspect-video">
-                    <img src="${p.url}" alt="${p.caption}" class="w-full h-full object-cover" />
-                    <span class="absolute bottom-1 left-1 bg-slate-950/80 text-[9px] font-bold text-slate-200 px-1.5 py-0.5 rounded">
-                      📸 ${formatRelativeTime(p.uploaded_at)}
-                    </span>
-                  </div>
-                `).join('')}
+          <!-- DESCUBIERTO POR (Atribución del Hunter) -->
+          <div class="bg-slate-900/80 border border-slate-800 rounded-2xl p-3 flex items-center justify-between text-xs">
+            <div class="flex items-center gap-2">
+              <span class="text-base">🔎</span>
+              <div>
+                <span class="text-slate-400">Descubierto por:</span>
+                <strong class="text-amber-400 ml-1">@${wc.discovered_by || 'PolM'}</strong>
               </div>
             </div>
-          ` : ''}
-
-          <!-- Metadata de Descubridor -->
-          <div class="text-center text-[11px] text-slate-500 py-2">
-            Descubierto originalmente por <strong>@${wc.creator_name || 'Hunter'}</strong> · ${wc.reviews_count || 12} verificaciones registradas
+            <span class="text-slate-400 font-semibold">
+              ${wc.verified_by_count || 14} Hunters lo han verificado
+            </span>
           </div>
+
         </div>
       </div>
     </div>
@@ -256,10 +245,9 @@ export function renderWcDetailModal(container) {
     closeBtn.addEventListener('click', () => store.closeWcDetail());
   }
 
-  // Toggle visual states of verify buttons
-  const form = container.querySelector('#quick-verify-form');
+  const form = container.querySelector('#v2-verify-form');
   if (form) {
-    const attachGroup = (selector) => {
+    const bindToggle = (selector) => {
       const btns = form.querySelectorAll(selector);
       btns.forEach(b => {
         b.addEventListener('click', () => {
@@ -269,31 +257,27 @@ export function renderWcDetailModal(container) {
       });
     };
 
-    attachGroup('[data-verif-status]');
-    attachGroup('[data-verif-paper]');
-    attachGroup('[data-verif-soap]');
-    attachGroup('[data-verif-clean]');
-    attachGroup('[data-verif-return]');
+    bindToggle('[data-v2-status]');
+    bindToggle('[data-v2-paper]');
+    bindToggle('[data-v2-soap]');
+    bindToggle('[data-v2-clean]');
 
     form.addEventListener('submit', (e) => {
       e.preventDefault();
-      
-      const statusBtn = form.querySelector('[data-verif-status].active');
-      const paperBtn = form.querySelector('[data-verif-paper].active');
-      const soapBtn = form.querySelector('[data-verif-soap].active');
-      const cleanBtn = form.querySelector('[data-verif-clean].active');
-      const returnBtn = form.querySelector('[data-verif-return].active');
+      const statusBtn = form.querySelector('[data-v2-status].active');
+      const paperBtn = form.querySelector('[data-v2-paper].active');
+      const soapBtn = form.querySelector('[data-v2-soap].active');
+      const cleanBtn = form.querySelector('[data-v2-clean].active');
 
       const report = {
-        status: statusBtn ? statusBtn.getAttribute('data-verif-status') : 'open',
-        has_paper: paperBtn ? paperBtn.getAttribute('data-verif-paper') === 'true' : true,
-        has_soap: soapBtn ? soapBtn.getAttribute('data-verif-soap') === 'true' : true,
-        cleanliness: cleanBtn ? cleanBtn.getAttribute('data-verif-clean') : 'clean',
-        would_return: returnBtn ? returnBtn.getAttribute('data-verif-return') === 'true' : true
+        status: statusBtn?.getAttribute('data-v2-status') || 'open',
+        has_paper: paperBtn?.getAttribute('data-v2-paper') === 'true',
+        has_soap: soapBtn?.getAttribute('data-v2-soap') === 'true',
+        cleanliness: cleanBtn?.getAttribute('data-v2-clean') || 'clean'
       };
 
       store.verifyWC(wc.id, report);
-      store.showToast('✅ ¡Verificación enviada! +15 XP ganados', 'success', 3500);
+      store.showToast('✅ ¡Verificación registrada! +15 XP', 'success');
       renderWcDetailModal(container);
     });
   }
