@@ -15,55 +15,69 @@ class MapManager {
   }
 
   init(containerId = 'map-container', onMarkerClick = null) {
-    if (this.initialized || !window.L) return;
+    if (!window.L) return;
 
     const el = document.getElementById(containerId);
     if (!el) return;
 
+    // Si ya había una instancia previa de Leaflet, la destruimos de forma segura
+    if (this.map) {
+      try {
+        this.map.remove();
+      } catch (e) {}
+      this.map = null;
+      this.markersLayer = null;
+      this.userMarker = null;
+    }
+
     this.onMarkerClickCallback = onMarkerClick;
     const { lat, lng } = store.userLocation;
 
-    this.map = window.L.map(containerId, {
-      center: [lat, lng],
-      zoom: 14,
-      zoomControl: false
-    });
+    try {
+      this.map = window.L.map(containerId, {
+        center: [lat, lng],
+        zoom: 14,
+        zoomControl: false
+      });
 
-    window.L.control.zoom({ position: 'bottomright' }).addTo(this.map);
+      window.L.control.zoom({ position: 'bottomright' }).addTo(this.map);
 
-    // OpenStreetMap oficial 100% gratuito, sin necesidad de API key
-    window.L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a>',
-      maxZoom: 19
-    }).addTo(this.map);
+      // OpenStreetMap oficial 100% gratuito, sin necesidad de API key
+      window.L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a>',
+        maxZoom: 19
+      }).addTo(this.map);
 
-    this.markersLayer = window.L.layerGroup().addTo(this.map);
+      this.markersLayer = window.L.layerGroup().addTo(this.map);
 
-    // Marcador del usuario (pulsador azul minimalista)
-    const userIcon = window.L.divIcon({
-      className: 'user-marker-icon',
-      html: `<div class="w-5 h-5 bg-blue-500 rounded-full border-2 border-white shadow-lg flex items-center justify-center animate-pulse"><div class="w-1.5 h-1.5 bg-white rounded-full"></div></div>`,
-      iconSize: [20, 20],
-      iconAnchor: [10, 10]
-    });
-    this.userMarker = window.L.marker([lat, lng], { icon: userIcon }).addTo(this.map);
+      // Marcador del usuario (pulsador azul minimalista)
+      const userIcon = window.L.divIcon({
+        className: 'user-marker-icon',
+        html: `<div class="w-5 h-5 bg-blue-500 rounded-full border-2 border-white shadow-lg flex items-center justify-center animate-pulse"><div class="w-1.5 h-1.5 bg-white rounded-full"></div></div>`,
+        iconSize: [20, 20],
+        iconAnchor: [10, 10]
+      });
+      this.userMarker = window.L.marker([lat, lng], { icon: userIcon }).addTo(this.map);
 
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (pos) => {
-          const uLat = pos.coords.latitude;
-          const uLng = pos.coords.longitude;
-          store.userLocation = { lat: uLat, lng: uLng, name: "Tu Ubicación Actual" };
-          this.userMarker.setLatLng([uLat, uLng]);
-          this.map.setView([uLat, uLng], 15);
-        },
-        () => {},
-        { enableHighAccuracy: true, timeout: 4000 }
-      );
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          (pos) => {
+            const uLat = pos.coords.latitude;
+            const uLng = pos.coords.longitude;
+            store.userLocation = { lat: uLat, lng: uLng, name: "Tu Ubicación Actual" };
+            if (this.userMarker) this.userMarker.setLatLng([uLat, uLng]);
+            if (this.map) this.map.setView([uLat, uLng], 15);
+          },
+          () => {},
+          { enableHighAccuracy: true, timeout: 4000 }
+        );
+      }
+
+      this.initialized = true;
+      this.renderMarkers();
+    } catch (err) {
+      console.warn('Error inicializando mapa Leaflet:', err);
     }
-
-    this.initialized = true;
-    this.renderMarkers();
   }
 
   renderMarkers() {

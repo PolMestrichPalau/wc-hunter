@@ -76,25 +76,22 @@ export function renderMapView(container) {
     });
   }
 
-  // Inicializar Leaflet
+  // Inicializar Leaflet sobre el contenedor activo
   setTimeout(() => {
-    if (!mapManager.initialized) {
-      mapManager.init('map-container', (clickedWc) => {
-        previewWc = clickedWc;
-        const drawer = document.getElementById('map-preview-drawer');
-        const pWrapper = document.querySelector('.panic-floating-wrapper');
-        if (pWrapper) pWrapper.classList.add('hidden');
-        if (drawer) {
-          drawer.innerHTML = renderPreviewCardHtml(clickedWc);
-          drawer.classList.remove('translate-y-24', 'opacity-0', 'pointer-events-none');
-          drawer.classList.add('translate-y-0', 'opacity-100');
-          attachPreviewEvents(drawer);
-        }
-      });
-    } else {
-      mapManager.invalidate();
-      mapManager.renderMarkers();
-    }
+    mapManager.init('map-container', (clickedWc) => {
+      previewWc = clickedWc;
+      const drawer = document.getElementById('map-preview-drawer');
+      const pWrapper = document.querySelector('.panic-floating-wrapper');
+      if (pWrapper) pWrapper.classList.add('hidden');
+      if (drawer) {
+        drawer.innerHTML = renderPreviewCardHtml(clickedWc);
+        drawer.classList.remove('translate-y-24', 'opacity-0', 'pointer-events-none');
+        drawer.classList.add('translate-y-0', 'opacity-100');
+        attachPreviewEvents(drawer);
+      }
+    });
+    mapManager.invalidate();
+    mapManager.renderMarkers();
   }, 50);
 
   const drawer = container.querySelector('#map-preview-drawer');
