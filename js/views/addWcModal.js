@@ -184,6 +184,13 @@ export function renderAddWcModal(container) {
   `;
 
   // Attach event listeners
+  const backdrop = container.querySelector('.fixed.inset-0');
+  if (backdrop) {
+    backdrop.addEventListener('click', (e) => {
+      if (e.target === backdrop) store.closeAddModal();
+    });
+  }
+
   const closeBtn = container.querySelector('#close-add-modal-btn');
   if (closeBtn) {
     closeBtn.addEventListener('click', () => store.closeAddModal());

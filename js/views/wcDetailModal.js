@@ -240,6 +240,13 @@ export function renderWcDetailModal(container) {
   `;
 
   // Attach event listeners
+  const backdrop = container.querySelector('.fixed.inset-0');
+  if (backdrop) {
+    backdrop.addEventListener('click', (e) => {
+      if (e.target === backdrop) store.closeWcDetail();
+    });
+  }
+
   const closeBtn = container.querySelector('#close-detail-modal-btn');
   if (closeBtn) {
     closeBtn.addEventListener('click', () => store.closeWcDetail());
