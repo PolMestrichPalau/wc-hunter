@@ -1,231 +1,196 @@
 /**
- * WC HUNTER — Vista Hunter / Gamificación Hub (Pestaña 4)
+ * WC HUNTER — Vista Hunter Hub V2.0
+ * Un juego real dentro de la app: Progreso, Próximos Logros, Álbum de Colección y Parrilla Coleccionable.
  */
 import { store } from '../state.js';
-import { ACHIEVEMENTS_CATALOG } from '../seedData.js';
-import { calculateUserLevel } from '../algorithms.js';
-
-let activeSection = 'missions'; // 'missions' | 'collection' | 'achievements'
+import { calculateLevel } from '../engines/gameEngine.js';
+import { UPCOMING_ACHIEVEMENTS, COLLECTION_CATEGORIES, ACHIEVEMENTS_CATALOG } from '../seedData.js';
 
 export function renderHunterView(container) {
   const user = store.user;
-  const levelInfo = calculateUserLevel(user.xp);
-  const missions = store.missions;
-  const collections = store.collections;
-  const unlockedAchIds = user.unlocked_achievements;
+  const levelInfo = calculateLevel(user.xp);
+  const unlockedAchIds = user.unlocked_achievements || [];
 
   container.innerHTML = `
-    <div class="w-full h-full flex flex-col bg-slate-900 text-slate-100 overflow-y-auto pb-24">
-      <!-- Cabecera de Gamificación: Nivel, Racha y XP -->
-      <div class="bg-gradient-to-b from-amber-950/40 via-slate-900 to-slate-900 px-4 pt-5 pb-4 border-b border-slate-800">
-        <div class="flex items-center justify-between mb-3">
-          <div class="flex items-center gap-3">
-            <div class="w-14 h-14 rounded-2xl bg-amber-500/20 border-2 border-amber-500 flex items-center justify-center text-3xl shadow-lg shadow-amber-500/20">
-              ${user.avatar}
-            </div>
-            <div>
-              <div class="flex items-center gap-1.5">
-                <h1 class="text-lg font-black text-white">${user.username}</h1>
-                <span class="text-xs bg-amber-500 text-slate-950 font-black px-2 py-0.5 rounded-full">
-                  NV. ${levelInfo.level}
-                </span>
-              </div>
-              <p class="text-xs font-black text-amber-400 mt-0.5">${user.title}</p>
-            </div>
+    <div class="w-full h-full flex flex-col bg-slate-950 text-slate-100 overflow-y-auto pb-24 md:pb-8">
+      
+      <!-- Cabecera de la Sección Hunter -->
+      <div class="sticky top-0 z-20 bg-slate-900/95 backdrop-blur-md px-4 sm:px-6 pt-5 pb-4 border-b border-slate-800/80 shadow-md">
+        <div class="flex items-center justify-between">
+          <div>
+            <h1 class="text-xl sm:text-2xl font-black text-white flex items-center gap-2">
+              <span>💩</span>
+              <span>HUNTER GAME HUB</span>
+            </h1>
+            <p class="text-xs text-slate-400 mt-0.5">Explora, verifica y completa tu colección personal</p>
           </div>
-
-          <!-- Racha Hunter -->
-          <div class="flex flex-col items-center bg-slate-800/90 border border-orange-500/40 rounded-2xl px-3 py-2 shadow">
-            <span class="text-xl animate-bounce">🔥</span>
-            <span class="text-sm font-black text-orange-400 leading-none mt-1">${user.streak_days} DÍAS</span>
-            <span class="text-[9px] text-slate-400 font-bold uppercase tracking-wider">RACHA</span>
-          </div>
-        </div>
-
-        <!-- Barra de Progreso de XP -->
-        <div class="bg-slate-800/80 rounded-xl p-3 border border-slate-700/60">
-          <div class="flex items-center justify-between text-xs font-bold mb-1.5">
-            <span class="text-slate-300">Rango: <span class="text-amber-400 font-extrabold">${levelInfo.rankTitle}</span></span>
-            <span class="text-amber-400 font-black">${user.xp.toLocaleString()} / ${levelInfo.nextLevelXP.toLocaleString()} XP</span>
-          </div>
-          <div class="w-full h-3 bg-slate-900 rounded-full overflow-hidden p-0.5 border border-slate-700">
-            <div class="h-full bg-gradient-to-r from-amber-500 to-yellow-300 rounded-full transition-all duration-500" style="width: ${levelInfo.progressPercent}%"></div>
-          </div>
-          <div class="flex justify-between items-center text-[10px] text-slate-400 font-semibold mt-1">
-            <span>Progreso del nivel</span>
-            <span>${levelInfo.progressPercent}% completado</span>
-          </div>
-        </div>
-
-        <!-- Sub-navegación: Misiones, Álbum y Logros -->
-        <div class="flex p-1 bg-slate-800 rounded-xl border border-slate-700/60 mt-3">
-          <button id="hunter-tab-missions" class="flex-1 py-2 text-xs font-black rounded-lg transition ${activeSection === 'missions' ? 'bg-amber-500 text-white shadow' : 'text-slate-400 hover:text-white'}">
-            🎯 Misiones
-          </button>
-          <button id="hunter-tab-collection" class="flex-1 py-2 text-xs font-black rounded-lg transition ${activeSection === 'collection' ? 'bg-amber-500 text-white shadow' : 'text-slate-400 hover:text-white'}">
-            🗃️ Álbum
-          </button>
-          <button id="hunter-tab-achievements" class="flex-1 py-2 text-xs font-black rounded-lg transition ${activeSection === 'achievements' ? 'bg-amber-500 text-white shadow' : 'text-slate-400 hover:text-white'}">
-            🏆 Logros (${unlockedAchIds.length})
-          </button>
+          <span class="text-xs font-black bg-amber-500/20 text-amber-300 border border-amber-500/40 px-3 py-1 rounded-xl">
+            Rango: ${levelInfo.rank}
+          </span>
         </div>
       </div>
 
-      <!-- Contenido según subpestaña -->
-      <div class="p-4 flex flex-col gap-3.5">
-        ${activeSection === 'missions' ? `
-          <div class="flex items-center justify-between mb-1">
-            <h2 class="text-sm font-black text-white uppercase tracking-wider">Misiones Activas</h2>
-            <span class="text-xs text-slate-400">Reinicio en 14h</span>
-          </div>
-
-          ${missions.map(m => `
-            <div class="bg-slate-800/90 border ${m.completed ? 'border-emerald-500/50 bg-emerald-950/20' : 'border-slate-700/70'} rounded-2xl p-3.5 shadow flex flex-col gap-2">
-              <div class="flex items-start justify-between gap-2">
-                <div class="flex-1">
-                  <div class="flex items-center gap-1.5 mb-0.5">
-                    <span class="text-[10px] font-black uppercase px-2 py-0.5 rounded ${m.badge === 'Semanal' ? 'bg-purple-900 text-purple-200' : 'bg-blue-900 text-blue-200'}">
-                      ${m.badge}
-                    </span>
-                    ${m.completed ? `<span class="text-[10px] font-black text-emerald-400 bg-emerald-950 px-2 py-0.5 rounded">¡COMPLETADA!</span>` : ''}
-                  </div>
-                  <h3 class="text-sm font-black text-white">${m.title}</h3>
-                  <p class="text-xs text-slate-400 mt-0.5">${m.description}</p>
-                </div>
-                <div class="flex flex-col items-end flex-shrink-0">
-                  <span class="text-xs font-black text-amber-400">+${m.xp_reward} XP</span>
-                  <span class="text-xs text-slate-300 font-extrabold mt-1">${m.progress}/${m.target}</span>
-                </div>
+      <div class="px-4 sm:px-6 py-5 flex flex-col gap-5 max-w-4xl mx-auto w-full">
+        
+        <!-- 1. TU PROGRESO (Nivel + XP + Racha) -->
+        <div class="bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 border border-slate-700/80 rounded-3xl p-5 shadow-xl flex flex-col gap-3">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-3">
+              <div class="w-14 h-14 rounded-2xl bg-amber-500/20 border-2 border-amber-500 flex items-center justify-center text-3xl shadow-lg shadow-amber-500/20">
+                ${user.avatar}
               </div>
-
-              <!-- Barra progreso misión -->
-              <div class="w-full h-2 bg-slate-900 rounded-full overflow-hidden border border-slate-700/60">
-                <div class="h-full ${m.completed ? 'bg-emerald-500' : 'bg-amber-500'} transition-all" style="width: ${(m.progress / m.target) * 100}%"></div>
-              </div>
-            </div>
-          `).join('')}
-        ` : activeSection === 'collection' ? `
-          <div class="flex items-center justify-between mb-1">
-            <h2 class="text-sm font-black text-white uppercase tracking-wider">Mi Álbum de Tronos</h2>
-            <span class="text-xs text-amber-400 font-bold">Coleccionismo</span>
-          </div>
-
-          ${collections.map(col => {
-            const collectedCount = col.stickers.filter(s => s.collected).length;
-            const total = col.stickers.length;
-            const isCompleted = collectedCount === total;
-
-            return `
-              <div class="bg-slate-800/90 border ${isCompleted ? 'border-amber-500/80 bg-amber-950/20' : 'border-slate-700/80'} rounded-2xl p-4 shadow flex flex-col gap-3">
-                <div class="flex items-center justify-between">
-                  <div>
-                    <h3 class="text-base font-black text-white flex items-center gap-1.5">
-                      <span>${col.title}</span>
-                      ${isCompleted ? '👑' : ''}
-                    </h3>
-                    <p class="text-xs text-slate-400 mt-0.5">${col.description}</p>
-                  </div>
-                  <span class="text-xs font-extrabold text-amber-400 bg-slate-900 px-2.5 py-1 rounded-xl border border-slate-700">
-                    ${collectedCount}/${total}
+              <div>
+                <div class="flex items-center gap-2">
+                  <h2 class="text-lg font-black text-white">NIVEL ${levelInfo.level}</h2>
+                  <span class="text-xs font-black text-amber-400 bg-amber-950/60 px-2 py-0.5 rounded border border-amber-500/40">
+                    ${levelInfo.rank}
                   </span>
                 </div>
-
-                <!-- Parrilla de Cromos / Stickers -->
-                <div class="grid grid-cols-2 gap-2.5 pt-1">
-                  ${col.stickers.map(s => `
-                    <div class="p-2.5 rounded-xl border ${s.collected ? 'bg-slate-700/80 border-amber-400/50 shadow' : 'bg-slate-900/60 border-slate-800 opacity-50'} flex items-center gap-2.5 transition">
-                      <span class="text-2xl ${s.collected ? '' : 'filter grayscale blur-[1px]'}">${s.icon}</span>
-                      <div class="min-w-0">
-                        <h4 class="text-xs font-bold text-white truncate">${s.name}</h4>
-                        <span class="text-[10px] font-semibold ${s.collected ? 'text-emerald-400' : 'text-slate-500'}">
-                          ${s.collected ? '✓ Coleccionado' : '🔒 Bloqueado'}
-                        </span>
-                      </div>
-                    </div>
-                  `).join('')}
-                </div>
-
-                <div class="flex items-center justify-between text-[11px] text-slate-400 border-t border-slate-700/50 pt-2">
-                  <span>Recompensa al completar:</span>
-                  <span class="font-bold text-amber-300">${col.reward_title}</span>
-                </div>
+                <p class="text-xs font-bold text-slate-400 mt-0.5">${user.title}</p>
               </div>
-            `;
-          }).join('')}
-        ` : `
-          <!-- Logros -->
-          <div class="flex items-center justify-between mb-1">
-            <h2 class="text-sm font-black text-white uppercase tracking-wider">Logros Hunter</h2>
-            <span class="text-xs text-slate-400">${unlockedAchIds.length} de ${ACHIEVEMENTS_CATALOG.length}</span>
+            </div>
+
+            <!-- Racha Hunter -->
+            <div class="flex flex-col items-center bg-slate-950/80 border border-orange-500/40 rounded-2xl px-4 py-2 shadow">
+              <span class="text-2xl animate-bounce">🔥</span>
+              <span class="text-sm font-black text-orange-400 leading-none mt-1">${user.streak_days} DÍAS</span>
+              <span class="text-[9px] text-slate-400 font-bold uppercase tracking-wider">RACHA</span>
+            </div>
           </div>
 
-          <div class="flex flex-col gap-2.5">
+          <!-- Barra de Progreso XP -->
+          <div class="mt-2">
+            <div class="flex justify-between text-xs font-bold mb-1.5">
+              <span class="text-slate-400">Progreso al siguiente nivel</span>
+              <span class="text-amber-400 font-black">${user.xp.toLocaleString()} / ${levelInfo.nextBase.toLocaleString()} XP</span>
+            </div>
+            <div class="w-full h-3.5 bg-slate-950 rounded-full overflow-hidden p-0.5 border border-slate-700">
+              <div class="h-full bg-gradient-to-r from-amber-500 to-yellow-300 rounded-full transition-all duration-500" style="width: ${levelInfo.percent}%"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 2. 🏆 PRÓXIMOS LOGROS EN PROGRESO -->
+        <div class="bg-slate-900/80 border border-slate-800 rounded-3xl p-5 flex flex-col gap-3 shadow-md">
+          <div class="flex items-center justify-between">
+            <h3 class="text-xs font-black uppercase tracking-wider text-slate-300 flex items-center gap-2">
+              <span>🏆</span>
+              <span>Próximos Logros</span>
+            </h3>
+            <span class="text-xs text-amber-400 font-bold">En curso</span>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+            ${UPCOMING_ACHIEVEMENTS.map(ach => `
+              <div class="bg-slate-800/80 border ${ach.completed ? 'border-amber-500/60 bg-amber-950/20' : 'border-slate-700/60'} rounded-2xl p-3 flex items-center justify-between gap-2 shadow-sm">
+                <div class="flex items-center gap-2.5 min-w-0">
+                  <span class="text-2xl">${ach.icon}</span>
+                  <div class="min-w-0">
+                    <h4 class="text-xs font-black text-white truncate">${ach.name}</h4>
+                    <span class="text-[11px] font-bold ${ach.completed ? 'text-amber-400' : 'text-slate-400'}">
+                      Progreso: ${ach.progress}
+                    </span>
+                  </div>
+                </div>
+                ${ach.completed ? `
+                  <button class="bg-amber-500 hover:bg-amber-400 text-slate-950 text-[11px] font-black px-2.5 py-1 rounded-xl shadow transition claim-ach-btn" data-ach-id="${ach.id}">
+                    ¡Reclamar!
+                  </button>
+                ` : `
+                  <span class="text-xs text-slate-500 font-bold">⏳</span>
+                `}
+              </div>
+            `).join('')}
+          </div>
+        </div>
+
+        <!-- 3. 🗃️ MI COLECCIÓN PERSONAL (42 / 120) -->
+        <div class="bg-slate-900/80 border border-slate-800 rounded-3xl p-5 flex flex-col gap-3 shadow-md">
+          <div class="flex items-center justify-between">
+            <div>
+              <h3 class="text-xs font-black uppercase tracking-wider text-slate-300 flex items-center gap-2">
+                <span>🗃️</span>
+                <span>Mi Álbum de Tronos</span>
+              </h3>
+              <p class="text-xs text-slate-400 mt-0.5">Colecciona WCs únicos por todo el mundo</p>
+            </div>
+            <div class="text-right">
+              <span class="text-base font-black text-amber-400 leading-none">42 / 120</span>
+              <span class="block text-[10px] text-slate-500 font-bold uppercase">TOTAL</span>
+            </div>
+          </div>
+
+          <!-- Parrilla de Categorías de Colección -->
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5 mt-1">
+            ${COLLECTION_CATEGORIES.map(cat => `
+              <div class="bg-slate-800/70 border border-slate-700/60 rounded-2xl p-3.5 flex flex-col gap-2">
+                <div class="flex items-center justify-between">
+                  <span class="text-xl">${cat.icon}</span>
+                  <span class="text-xs font-black text-amber-400">${cat.collected}/${cat.total}</span>
+                </div>
+                <h4 class="text-xs font-black text-white truncate">${cat.name}</h4>
+                <div class="w-full h-1.5 bg-slate-950 rounded-full overflow-hidden">
+                  <div class="h-full bg-amber-500 rounded-full" style="width: ${(cat.collected / cat.total) * 100}%"></div>
+                </div>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+
+        <!-- 4. PARRILLA DE LOGROS COLECCIONABLES CON CANDADOS -->
+        <div class="bg-slate-900/80 border border-slate-800 rounded-3xl p-5 flex flex-col gap-3 shadow-md">
+          <div class="flex items-center justify-between">
+            <h3 class="text-xs font-black uppercase tracking-wider text-slate-300 flex items-center gap-2">
+              <span>🏅</span>
+              <span>Todos los Logros (${unlockedAchIds.length} / ${ACHIEVEMENTS_CATALOG.length})</span>
+            </h3>
+            <span class="text-xs text-slate-500 font-semibold">Cromos</span>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
             ${ACHIEVEMENTS_CATALOG.map(ach => {
               const isUnlocked = unlockedAchIds.includes(ach.id);
-              if (ach.hidden && !isUnlocked) {
+              if (!isUnlocked && ach.hidden) {
                 return `
-                  <div class="bg-slate-800/50 border border-dashed border-slate-700/80 rounded-2xl p-3.5 flex items-center gap-3 opacity-60">
-                    <span class="text-2xl">❓</span>
-                    <div class="flex-1 min-w-0">
-                      <h4 class="text-xs font-black text-slate-400">Logro Oculto</h4>
-                      <p class="text-[11px] text-slate-500 mt-0.5">Explora circunstancias extraordinarias para desbloquearlo.</p>
+                  <div class="bg-slate-950/60 border border-dashed border-slate-800 rounded-2xl p-3 flex items-center gap-3 opacity-60">
+                    <span class="text-2xl">🔒</span>
+                    <div class="min-w-0">
+                      <h4 class="text-xs font-black text-slate-400">???</h4>
+                      <p class="text-[11px] text-slate-500 mt-0.5">Descubre cómo conseguirlo explorando.</p>
                     </div>
-                    <span class="text-xs font-bold text-slate-500">+${ach.xp} XP</span>
                   </div>
                 `;
               }
 
               return `
-                <div class="bg-slate-800/90 border ${isUnlocked ? 'border-amber-500/50' : 'border-slate-700/60 opacity-70'} rounded-2xl p-3.5 flex items-center justify-between gap-3 shadow">
-                  <div class="flex items-center gap-3 min-w-0">
-                    <div class="w-10 h-10 rounded-xl bg-slate-900 border ${isUnlocked ? 'border-amber-500' : 'border-slate-700'} flex items-center justify-center text-xl flex-shrink-0">
-                      ${ach.icon}
-                    </div>
+                <div class="bg-slate-800/80 border ${isUnlocked ? 'border-amber-500/40' : 'border-slate-700/60 opacity-60'} rounded-2xl p-3 flex items-center justify-between gap-2 shadow-sm">
+                  <div class="flex items-center gap-2.5 min-w-0">
+                    <span class="text-2xl">${ach.icon}</span>
                     <div class="min-w-0">
-                      <div class="flex items-center gap-1.5">
-                        <h4 class="text-xs font-black ${isUnlocked ? 'text-white' : 'text-slate-300'} truncate">${ach.name}</h4>
-                        <span class="rarity-badge ${ach.rarity}">${ach.rarity}</span>
-                      </div>
-                      <p class="text-[11px] text-slate-400 mt-0.5">${ach.description}</p>
+                      <h4 class="text-xs font-black ${isUnlocked ? 'text-white' : 'text-slate-300'} truncate">${ach.name}</h4>
+                      <p class="text-[10px] text-slate-400 truncate mt-0.5">${ach.description}</p>
                     </div>
                   </div>
-                  <div class="flex flex-col items-end flex-shrink-0">
-                    <span class="text-xs font-black ${isUnlocked ? 'text-emerald-400' : 'text-amber-400'}">
-                      ${isUnlocked ? '✓ CONSEGUIDO' : `+${ach.xp} XP`}
-                    </span>
-                  </div>
+                  <span class="text-[10px] font-black ${isUnlocked ? 'text-emerald-400' : 'text-slate-500'} flex-shrink-0">
+                    ${isUnlocked ? '✓ CONSEGUIDO' : `+${ach.xp} XP`}
+                  </span>
                 </div>
               `;
             }).join('')}
           </div>
-        `}
+        </div>
+
       </div>
     </div>
   `;
 
-  // Attach event listeners
-  const missionsBtn = container.querySelector('#hunter-tab-missions');
-  const collectionBtn = container.querySelector('#hunter-tab-collection');
-  const achievementsBtn = container.querySelector('#hunter-tab-achievements');
-
-  if (missionsBtn) {
-    missionsBtn.addEventListener('click', () => {
-      activeSection = 'missions';
+  // Attach event listener for claiming achievements
+  const claimBtns = container.querySelectorAll('.claim-ach-btn');
+  claimBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      const achId = btn.getAttribute('data-ach-id');
+      store.checkAchievement(achId);
       renderHunterView(container);
     });
-  }
-
-  if (collectionBtn) {
-    collectionBtn.addEventListener('click', () => {
-      activeSection = 'collection';
-      renderHunterView(container);
-    });
-  }
-
-  if (achievementsBtn) {
-    achievementsBtn.addEventListener('click', () => {
-      activeSection = 'achievements';
-      renderHunterView(container);
-    });
-  }
+  });
 }
