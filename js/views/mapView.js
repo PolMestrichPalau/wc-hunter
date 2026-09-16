@@ -12,9 +12,9 @@ export function renderMapView(container) {
   container.innerHTML = `
     <div class="relative w-full h-full flex flex-col overflow-hidden">
       
-      <!-- Buscador Flotante Minimalista -->
-      <div class="absolute top-4 inset-x-4 sm:left-6 sm:right-auto sm:w-96 z-[1000] pointer-events-none">
-        <div class="bg-slate-900/95 backdrop-blur-md shadow-2xl rounded-2xl p-2.5 flex items-center gap-2.5 border border-slate-800 pointer-events-auto transition">
+      <!-- Buscador Flotante Minimalista + Botón Descubrir WC -->
+      <div class="absolute top-4 inset-x-4 sm:left-6 sm:right-auto sm:w-[400px] z-[1000] pointer-events-none flex items-center gap-2">
+        <div class="bg-slate-900/95 backdrop-blur-md shadow-2xl rounded-2xl p-2.5 flex items-center gap-2.5 border border-slate-800 pointer-events-auto transition flex-1">
           <span class="text-lg pl-2">🔎</span>
           <input
             id="map-search-input"
@@ -27,6 +27,14 @@ export function renderMapView(container) {
             <button id="clear-search-btn" class="text-slate-400 hover:text-white p-1 font-bold text-xs">✕</button>
           ` : ''}
         </div>
+        <button
+          id="map-add-wc-btn"
+          class="bg-gradient-to-r from-amber-500 to-yellow-400 hover:from-amber-600 text-slate-950 font-black text-sm px-3.5 py-3 rounded-2xl shadow-xl flex items-center gap-1.5 pointer-events-auto active:scale-95 transition flex-shrink-0"
+          title="Descubrir Nuevo WC (+100 XP)"
+        >
+          <span class="text-base">➕</span>
+          <span class="hidden sm:inline text-xs font-black">Nuevo WC</span>
+        </button>
       </div>
 
       <!-- Contenedor del Mapa Leaflet -->
@@ -65,6 +73,14 @@ export function renderMapView(container) {
       store.setSearchQuery('');
       mapManager.renderMarkers();
       renderMapView(container);
+    });
+  }
+
+  // Event listener del botón añadir WC en mapa
+  const addBtn = container.querySelector('#map-add-wc-btn');
+  if (addBtn) {
+    addBtn.addEventListener('click', () => {
+      store.openAddModal();
     });
   }
 
