@@ -31,10 +31,9 @@ class MapManager {
 
     window.L.control.zoom({ position: 'bottomright' }).addTo(this.map);
 
-    // CartoDB Positron / OSM tiles oscuros y limpios
-    window.L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
-      attribution: '&copy; OpenStreetMap contributors &copy; CARTO',
-      subdomains: 'abcd',
+    // OpenStreetMap oficial 100% gratuito, sin necesidad de API key
+    window.L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a>',
       maxZoom: 19
     }).addTo(this.map);
 
