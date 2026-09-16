@@ -1,6 +1,6 @@
 /**
  * WC HUNTER — Vista Mapa Exploratorio V2.0
- * Vista visual "¿Dónde están?" con tarjeta preview al pulsar marcador.
+ * Vista visual "¿Dónde están?" con tarjeta preview al pulsar marcador y Botón de Pánico flotante destacado.
  */
 import { store } from '../state.js';
 import { mapManager } from '../map.js';
@@ -14,7 +14,7 @@ export function renderMapView(container) {
       
       <!-- Buscador Flotante Minimalista -->
       <div class="absolute top-4 inset-x-4 sm:left-6 sm:right-auto sm:w-96 z-[1000] pointer-events-none">
-        <div class="bg-slate-900/90 backdrop-blur-md shadow-2xl rounded-2xl p-2 flex items-center gap-2 border border-slate-800 pointer-events-auto transition">
+        <div class="bg-slate-900/95 backdrop-blur-md shadow-2xl rounded-2xl p-2.5 flex items-center gap-2.5 border border-slate-800 pointer-events-auto transition">
           <span class="text-lg pl-2">🔎</span>
           <input
             id="map-search-input"
@@ -26,15 +26,22 @@ export function renderMapView(container) {
           ${store.searchQuery ? `
             <button id="clear-search-btn" class="text-slate-400 hover:text-white p-1 font-bold text-xs">✕</button>
           ` : ''}
-          <button id="map-quick-rescue-btn" class="bg-rose-600 hover:bg-rose-500 text-white font-black text-xs px-3 py-2 rounded-xl transition flex items-center gap-1 shadow-md">
-            <span>🚨</span>
-            <span class="hidden sm:inline">Necesito WC</span>
-          </button>
         </div>
       </div>
 
       <!-- Contenedor del Mapa Leaflet -->
       <div id="map-container" class="w-full flex-1 z-0"></div>
+
+      <!-- BOTÓN DE PÁNICO FLOTANTE DE ALTA VISIBILIDAD (🚨 NECESITO UN WC AHORA) -->
+      <div class="absolute bottom-20 md:bottom-8 inset-x-0 flex justify-center z-[900] pointer-events-none px-4 ${previewWc ? 'hidden' : ''}">
+        <button
+          id="floating-panic-btn"
+          class="pointer-events-auto bg-gradient-to-r from-red-600 via-rose-600 to-red-600 hover:from-red-500 hover:to-rose-500 text-white font-black text-sm sm:text-base px-6 py-3.5 rounded-2xl shadow-2xl flex items-center gap-3 border-2 border-rose-300/40 active:scale-95 transition-all"
+        >
+          <span class="text-2xl animate-bounce">🚨</span>
+          <span class="tracking-wider">NECESITO UN WC AHORA</span>
+        </button>
+      </div>
 
       <!-- Tarjeta Flotante Preview al Tocar un Marcador -->
       <div id="map-preview-drawer" class="absolute bottom-20 md:bottom-6 inset-x-4 max-w-md mx-auto z-[1000] transition-all duration-300 ${previewWc ? 'translate-y-0 opacity-100' : 'translate-y-24 opacity-0 pointer-events-none'}">
@@ -61,19 +68,22 @@ export function renderMapView(container) {
     });
   }
 
-  const rescueBtn = container.querySelector('#map-quick-rescue-btn');
-  if (rescueBtn) {
-    rescueBtn.addEventListener('click', () => {
+  // Event listener del botón flotante de pánico
+  const panicBtn = container.querySelector('#floating-panic-btn');
+  if (panicBtn) {
+    panicBtn.addEventListener('click', () => {
       store.setTab('near');
     });
   }
 
-  // Inicializar Leaflet con callback para abrir la tarjeta preview
+  // Inicializar Leaflet
   setTimeout(() => {
     if (!mapManager.initialized) {
       mapManager.init('map-container', (clickedWc) => {
         previewWc = clickedWc;
         const drawer = document.getElementById('map-preview-drawer');
+        const pBtn = document.getElementById('floating-panic-btn');
+        if (pBtn) pBtn.parentElement.classList.add('hidden');
         if (drawer) {
           drawer.innerHTML = renderPreviewCardHtml(clickedWc);
           drawer.classList.remove('translate-y-24', 'opacity-0', 'pointer-events-none');
@@ -156,6 +166,8 @@ function attachPreviewEvents(drawer) {
       previewWc = null;
       drawer.classList.add('translate-y-24', 'opacity-0', 'pointer-events-none');
       drawer.classList.remove('translate-y-0', 'opacity-100');
+      const pBtn = document.getElementById('floating-panic-btn');
+      if (pBtn) pBtn.parentElement.classList.remove('hidden');
     });
   }
 }
