@@ -259,7 +259,7 @@ body {
 /* Contenedor Flotante del Botón de Pánico en el Mapa */
 .panic-floating-wrapper {
   position: absolute;
-  bottom: 20px;
+  bottom: 48px;
   left: 0;
   right: 0;
   display: flex;
@@ -267,6 +267,12 @@ body {
   z-index: 1000;
   pointer-events: none;
   padding: 0 16px;
+}
+
+@media (min-width: 768px) {
+  .panic-floating-wrapper {
+    bottom: 36px;
+  }
 }
 
 /* Botón Flotante de Pánico en el Mapa */
@@ -292,7 +298,7 @@ body {
 /* Contenedor del Drawer Preview en el Mapa */
 .preview-drawer-wrapper {
   position: absolute;
-  bottom: 16px;
+  bottom: 40px;
   left: 16px;
   right: 16px;
   max-width: 28rem;
