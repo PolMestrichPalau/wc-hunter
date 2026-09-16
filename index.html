@@ -73,9 +73,10 @@
           <span>Mapa Exploratorio</span>
         </button>
 
-        <button class="sidebar-link" data-tab="near">
-          <span class="text-xl">🚨</span>
-          <span>Necesito WC / Cerca</span>
+        <!-- Botón de Emergencia Destacado en el Sidebar -->
+        <button class="sidebar-link sidebar-panic-link" data-tab="near">
+          <span class="text-xl animate-pulse">🚨</span>
+          <span class="tracking-wide">NECESITO WC AHORA</span>
         </button>
 
         <button class="sidebar-link" data-tab="rankings">
@@ -102,7 +103,7 @@
         </button>
 
         <!-- Mini-Widget del Usuario Hunter -->
-        <div id="sidebar-user-card" class="bg-slate-900/90 rounded-2xl p-3 border border-slate-800 flex items-center justify-between">
+        <div id="sidebar-user-card" class="bg-slate-900/90 rounded-2xl p-3 border border-slate-800 flex items-center justify-between cursor-pointer hover:border-slate-700 transition">
           <div class="flex items-center gap-2.5">
             <span class="text-2xl" id="sidebar-avatar">🧔‍♂️</span>
             <div class="min-w-0">
@@ -132,16 +133,17 @@
       <!-- Modal Formulario Añadir WC -->
       <div id="add-modal-container"></div>
 
-      <!-- Barra de Navegación Inferior Móvil (Dock) -->
+      <!-- Barra de Navegación Inferior Móvil (Dock) con Pestaña de Emergencia Resaltada -->
       <nav id="bottom-nav">
         <button class="nav-tab-btn active" data-tab="map" title="Mapa">
           <span class="nav-icon">🗺️</span>
           <span>MAPA</span>
         </button>
 
-        <button class="nav-tab-btn" data-tab="near" title="Cerca">
+        <!-- Botón de Emergencia Destacado en el Dock Móvil -->
+        <button class="nav-tab-btn nav-tab-panic" data-tab="near" title="Emergencia">
           <span class="nav-icon">🚨</span>
-          <span>NECESITO WC</span>
+          <span>URGENCIA</span>
         </button>
 
         <button class="nav-tab-btn" data-tab="rankings" title="Rankings">
