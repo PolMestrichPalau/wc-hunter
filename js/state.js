@@ -4,7 +4,7 @@
 import { INITIAL_USER, INITIAL_WCS, ACHIEVEMENTS_CATALOG, MISSIONS_LIST, COLLECTIONS } from './seedData.js';
 import { calculateUserLevel, calculateConfidence, calculateWCScore, calculateRarityAndDifficulty, calculateXPForAction } from './algorithms.js';
 
-const STORAGE_KEY = 'wc_hunter_state_v1';
+const STORAGE_KEY = 'wc_hunter_state_v2';
 
 class Store {
   constructor() {
@@ -14,6 +14,7 @@ class Store {
 
   loadState() {
     try {
+      localStorage.removeItem('wc_hunter_state_v1');
       const saved = localStorage.getItem(STORAGE_KEY);
       if (saved) {
         const parsed = JSON.parse(saved);
