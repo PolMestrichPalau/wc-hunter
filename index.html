@@ -166,9 +166,9 @@
   </div>
 
   <!-- Orquestador Modular JS -->
-  <script type="module" src="js/app.js?v=3.0"></script>
+  <script type="module" src="js/app.js?v=3.5"></script>
 
-  <!-- Service Worker Registration & Cache Purge -->
+  <!-- Service Worker Registration -->
   <script>
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
@@ -180,22 +180,10 @@
       });
     }
 
-    // Safety fallback: si por bloqueo de red o caché vieja no monta en 2.5s, ofrece recarga limpia
-    setTimeout(() => {
-      const container = document.getElementById('view-container');
-      if (container && container.children.length === 0 && !window.wcHunterApp) {
-        container.innerHTML = `
-          <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;padding:24px;text-align:center;color:#fff;background:#080c14;">
-            <div style="font-size:56px;margin-bottom:16px;">🚽</div>
-            <h2 style="font-size:20px;font-weight:900;margin-bottom:8px;">WC HUNTER V2</h2>
-            <p style="font-size:13px;color:#94a3b8;margin-bottom:20px;max-width:280px;">Actualizando a la última versión para tu móvil...</p>
-            <button onclick="if('caches' in window){caches.keys().then(k=>Promise.all(k.map(n=>caches.delete(n))))}; window.location.reload(true);" style="background:#f59e0b;color:#000;font-weight:900;font-size:14px;padding:12px 24px;border-radius:14px;border:none;cursor:pointer;box-shadow:0 6px 20px rgba(245,158,11,0.4);">
-              🚀 Cargar WC Hunter
-            </button>
-          </div>
-        `;
-      }
-    }, 2500);
+    // Captura global de errores con mensaje claro si ocurre algún fallo
+    window.addEventListener('error', (e) => {
+      console.error('WC Hunter Runtime Error:', e.error || e.message);
+    });
   </script>
 </body>
 </html>

@@ -56,13 +56,39 @@ export const UPCOMING_ACHIEVEMENTS = [
   { id: "secret_hunter", name: "🔐 Cazador secreto", progress: "4/10", completed: false, icon: "🔐" }
 ];
 
-export const COLLECTION_CATEGORIES = [
+export const ACHIEVEMENTS_CATALOG = [
+  { id: "first_wc", name: "Primer Marcaje", description: "Descubre o verifica tu primer WC.", xp: 50, icon: "🚽" },
+  { id: "paper_hero", name: "Héroe del Papel", description: "Verifica 10 WC que sí tenían papel higiénico.", xp: 100, icon: "🧻" },
+  { id: "clean_inspector", name: "Inspector de Higiene", description: "Reporta 5 WC limpios e impecables.", xp: 80, icon: "🧼" },
+  { id: "city_explorer", name: "Conquistador Urbano", description: "Visita y verifica WC en 3 ciudades distintas.", xp: 150, icon: "🏙️" },
+  { id: "railway_caganer", name: "Cagón de Vía", description: "Usa un WC en estación de tren o metro.", xp: 100, icon: "🚆" },
+  { id: "emergency_caganer", name: "Salvador en Apuros", description: "Usa el modo emergencia y encuentra WC a tiempo.", xp: 120, icon: "🚨" },
+  { id: "night_caganer", name: "Cagón Nocturno", description: "Verifica un WC entre las 00:00 y las 06:00.", xp: 150, icon: "🌙" },
+  { id: "stadium_caganer", name: "Cagón de Estadio", description: "Registra un WC en un estadio deportivo.", xp: 200, icon: "🏟️" },
+  { id: "altitude_caganer", name: "Cagón de Altura", description: "Registra un WC en avión o a gran altura.", xp: 300, icon: "✈️" },
+  { id: "secret_master", name: "Maestro de los Secretos", description: "Descubre y documenta 5 WC secretos.", xp: 250, icon: "🔐" },
+  { id: "vip_caganer", name: "Trono de Oro", description: "Usa un WC con puntuación 95+ de gran confort.", xp: 150, icon: "👑" },
+  { id: "police_caganer", name: "Cagón de Comisaría", description: "Usa un WC dentro de una comisaría de policía.", xp: 400, icon: "🚓", hidden: true },
+  { id: "lighthouse_caganer", name: "Cagón del Faro", description: "Encuentra un WC en un faro o punto marítimo remoto.", xp: 500, icon: "🗼", hidden: true },
+  { id: "iron_stomach", name: "Estómago de Hierro", description: "Sobrevive a un WC con score menor a 30.", xp: 100, icon: "🤢", hidden: true }
+];
+
+export const MISSIONS_LIST = [
+  { id: "mis_paper_10", title: "Rastreador de Celulosa", description: "Encuentra 5 WC con papel higiénico disponible", progress: 3, target: 5, xp_reward: 75, completed: false },
+  { id: "mis_clean_check", title: "Control de Calidad", description: "Verifica 3 WC limpios esta semana", progress: 2, target: 3, xp_reward: 50, completed: false },
+  { id: "mis_secret_hunt", title: "Caza Secreta", description: "Descubre 1 WC secreto no documentado", progress: 0, target: 1, xp_reward: 150, completed: false }
+];
+
+export const COLLECTIONS = [
   { id: "public", name: "Públicos Urbanos", icon: "🚽", collected: 18, total: 30, color: "emerald" },
   { id: "transport", name: "Transporte y Viajes", icon: "✈️", collected: 5, total: 12, color: "blue" },
   { id: "culture", name: "Cultura y Museos", icon: "🏛️", collected: 4, total: 15, color: "amber" },
   { id: "sports", name: "Deportes y Estadios", icon: "🏟️", collected: 3, total: 8, color: "indigo" },
   { id: "secrets", name: "WCs Secretos", icon: "🔐", collected: 7, total: 20, color: "purple" }
 ];
+
+export const COLLECTION_CATEGORIES = COLLECTIONS;
+
 
 export const INITIAL_WCS = [
   {
