@@ -256,23 +256,17 @@ body {
   transform: scale(1.03);
 }
 
-/* Contenedor Flotante del Botón de Pánico en el Mapa (NUNCA tapado por el menú) */
+/* Contenedor Flotante del Botón de Pánico en el Mapa */
 .panic-floating-wrapper {
   position: absolute;
-  bottom: calc(66px + env(safe-area-inset-bottom, 0px) + 20px);
+  bottom: 20px;
   left: 0;
   right: 0;
   display: flex;
   justify-content: center;
-  z-index: 1100;
+  z-index: 1000;
   pointer-events: none;
   padding: 0 16px;
-}
-
-@media (min-width: 768px) {
-  .panic-floating-wrapper {
-    bottom: 28px;
-  }
 }
 
 /* Botón Flotante de Pánico en el Mapa */
@@ -298,19 +292,13 @@ body {
 /* Contenedor del Drawer Preview en el Mapa */
 .preview-drawer-wrapper {
   position: absolute;
-  bottom: calc(66px + env(safe-area-inset-bottom, 0px) + 16px);
+  bottom: 16px;
   left: 16px;
   right: 16px;
   max-width: 28rem;
   margin-left: auto;
   margin-right: auto;
   z-index: 1200;
-}
-
-@media (min-width: 768px) {
-  .preview-drawer-wrapper {
-    bottom: 24px;
-  }
 }
 
 /* Badges de Rareza V2 */
