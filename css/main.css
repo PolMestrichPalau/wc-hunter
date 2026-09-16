@@ -97,14 +97,16 @@ body {
   bottom: 0;
   left: 0;
   right: 0;
-  height: 66px;
-  background: rgba(11, 15, 25, 0.96);
+  height: calc(66px + env(safe-area-inset-bottom, 0px));
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  background: rgba(11, 15, 25, 0.98);
   backdrop-filter: blur(20px);
   border-top: 1px solid var(--border-subtle);
   display: flex;
   align-items: center;
   justify-content: space-around;
-  padding: 0 4px;
+  padding-left: 4px;
+  padding-right: 4px;
   z-index: 1000;
 }
 
@@ -144,11 +146,11 @@ body {
 }
 
 .nav-tab-btn.nav-tab-panic .nav-icon {
-  background: rgba(239, 68, 68, 0.18);
-  border: 1px solid rgba(239, 68, 68, 0.4);
+  background: rgba(239, 68, 68, 0.2);
+  border: 1px solid rgba(239, 68, 68, 0.5);
   border-radius: 12px;
-  padding: 2px 8px;
-  box-shadow: 0 0 10px rgba(239, 68, 68, 0.3);
+  padding: 3px 8px;
+  box-shadow: 0 0 10px rgba(239, 68, 68, 0.35);
 }
 
 .nav-tab-btn.nav-tab-panic.active {
@@ -249,23 +251,61 @@ body {
   transform: scale(1.03);
 }
 
+/* Contenedor Flotante del Botón de Pánico en el Mapa (NUNCA tapado por el menú) */
+.panic-floating-wrapper {
+  position: absolute;
+  bottom: calc(66px + env(safe-area-inset-bottom, 0px) + 20px);
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: center;
+  z-index: 1100;
+  pointer-events: none;
+  padding: 0 16px;
+}
+
+@media (min-width: 768px) {
+  .panic-floating-wrapper {
+    bottom: 28px;
+  }
+}
+
 /* Botón Flotante de Pánico en el Mapa */
 #floating-panic-btn {
+  pointer-events: auto;
   background: linear-gradient(135deg, #ef4444, #dc2626);
   color: #ffffff;
-  border: 2px solid rgba(255, 255, 255, 0.3);
-  box-shadow: 0 10px 30px rgba(239, 68, 68, 0.6);
+  border: 2px solid rgba(255, 255, 255, 0.35);
+  box-shadow: 0 10px 30px rgba(239, 68, 68, 0.7);
   cursor: pointer;
   transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 
 #floating-panic-btn:hover {
-  transform: scale(1.05);
-  box-shadow: 0 12px 35px rgba(239, 68, 68, 0.8);
+  transform: scale(1.04);
+  box-shadow: 0 12px 35px rgba(239, 68, 68, 0.9);
 }
 
 #floating-panic-btn:active {
   transform: scale(0.96);
+}
+
+/* Contenedor del Drawer Preview en el Mapa */
+.preview-drawer-wrapper {
+  position: absolute;
+  bottom: calc(66px + env(safe-area-inset-bottom, 0px) + 16px);
+  left: 16px;
+  right: 16px;
+  max-width: 28rem;
+  margin-left: auto;
+  margin-right: auto;
+  z-index: 1200;
+}
+
+@media (min-width: 768px) {
+  .preview-drawer-wrapper {
+    bottom: 24px;
+  }
 }
 
 /* Badges de Rareza V2 */
