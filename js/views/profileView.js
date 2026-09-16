@@ -1,20 +1,21 @@
 /**
- * WC HUNTER — Vista Perfil del Usuario (Pestaña 5)
+ * WC HUNTER — Vista Perfil & Récords Personales V2.0
  */
 import { store } from '../state.js';
-import { calculateUserLevel } from '../algorithms.js';
+import { calculateLevel } from '../engines/gameEngine.js';
+import { INITIAL_USER_RECORDS, UNLOCKED_TITLES_POOL, generateUserNickname } from '../engines/userEngine.js';
 
 export function renderProfileView(container) {
   const user = store.user;
-  const levelInfo = calculateUserLevel(user.xp);
-
-  // Generador de apodo dinámico
-  const autoNick = `El ${user.title.replace(/[^\w\sáéíóúÁÉÍÓÚñÑ]/g, '').trim()} de los ${user.stats.visited_count} Retretes`;
+  const levelInfo = calculateLevel(user.xp);
+  const autoNick = generateUserNickname(user);
+  const records = INITIAL_USER_RECORDS;
 
   container.innerHTML = `
-    <div class="w-full h-full flex flex-col bg-slate-900 text-slate-100 overflow-y-auto pb-24">
-      <!-- Tarjeta Principal del Perfil -->
-      <div class="bg-gradient-to-b from-slate-800 to-slate-900 p-5 border-b border-slate-800 flex flex-col items-center text-center">
+    <div class="w-full h-full flex flex-col bg-slate-950 text-slate-100 overflow-y-auto pb-24 md:pb-8">
+      
+      <!-- Cabecera del Perfil -->
+      <div class="bg-gradient-to-b from-slate-900 to-slate-950 border-b border-slate-800 px-6 pt-6 pb-5 flex flex-col items-center text-center">
         <div class="relative mb-3">
           <div class="w-20 h-20 rounded-3xl bg-amber-500/20 border-2 border-amber-500 flex items-center justify-center text-4xl shadow-xl shadow-amber-500/20">
             ${user.avatar}
@@ -24,98 +25,177 @@ export function renderProfileView(container) {
           </span>
         </div>
 
-        <h1 class="text-xl font-black text-white">${user.username}</h1>
+        <h1 class="text-xl sm:text-2xl font-black text-white">${user.username}</h1>
         <p class="text-xs text-amber-400 font-extrabold mt-0.5 tracking-wide">${user.title}</p>
         <span class="text-[11px] text-slate-400 italic mt-1">"${autoNick}"</span>
 
-        <!-- Badge de Reputación -->
-        <div class="mt-3 bg-emerald-950/60 border border-emerald-500/40 rounded-xl px-3 py-1.5 flex items-center gap-2">
+        <div class="mt-3 bg-emerald-950/40 border border-emerald-500/30 rounded-xl px-3.5 py-1.5 flex items-center gap-2">
           <span class="text-sm">🛡️</span>
           <span class="text-xs font-bold text-emerald-300">Reputación Hunter: <strong>${user.reputation}% Fiable</strong></span>
         </div>
       </div>
 
-      <!-- Selector de Título Honorífico -->
-      <div class="p-4 flex flex-col gap-4">
-        <div class="bg-slate-800/90 border border-slate-700/70 rounded-2xl p-4 shadow">
-          <h2 class="text-xs font-black text-slate-300 uppercase tracking-wider mb-2 flex items-center gap-1.5">
-            <span>🏷️</span> <span>Elegir Título Visible</span>
-          </h2>
-          <select id="user-title-select" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2.5 text-sm font-bold text-amber-400 focus:outline-none focus:border-amber-500">
-            ${user.unlocked_titles.map(t => `
-              <option value="${t}" ${t === user.title ? 'selected' : ''}>${t}</option>
-            `).join('')}
-          </select>
-          <p class="text-[11px] text-slate-400 mt-2">
-            Desbloquea más títulos subiendo de nivel y completando colecciones especiales.
-          </p>
-        </div>
+      <div class="px-4 sm:px-6 py-5 flex flex-col gap-5 max-w-4xl mx-auto w-full">
+        
+        <!-- 1. 💩 MIS RÉCORDS PERSONALES -->
+        <div class="bg-slate-900/80 border border-slate-800 rounded-3xl p-5 flex flex-col gap-3 shadow-md">
+          <div class="flex items-center justify-between">
+            <h2 class="text-xs font-black uppercase tracking-wider text-slate-300 flex items-center gap-2">
+              <span>💩</span>
+              <span>Mis Récords Personales</span>
+            </h2>
+            <span class="text-xs text-amber-400 font-bold">Logros de Vida</span>
+          </div>
 
-        <!-- Estadísticas Detalladas de Contribución -->
-        <div class="bg-slate-800/90 border border-slate-700/70 rounded-2xl p-4 shadow">
-          <h2 class="text-xs font-black text-slate-300 uppercase tracking-wider mb-3 flex items-center gap-1.5">
-            <span>📊</span> <span>Estadísticas de Exploración</span>
-          </h2>
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            <div class="bg-slate-800/80 border border-slate-700/60 rounded-2xl p-3.5 flex flex-col justify-between">
+              <span class="text-[11px] font-bold text-slate-400 flex items-center gap-1.5">
+                <span>🔴</span> <span>WC Más Raro</span>
+              </span>
+              <div class="my-2">
+                <span class="text-sm font-black text-white block truncate">${records.rarestWc.name}</span>
+                <span class="text-xs text-rose-400 font-extrabold">Rareza: ${records.rarestWc.score}</span>
+              </div>
+              <span class="text-[10px] font-black uppercase text-rose-400 bg-rose-950/60 px-2 py-0.5 rounded w-max border border-rose-500/30">
+                ${records.rarestWc.tag}
+              </span>
+            </div>
 
-          <div class="grid grid-cols-2 gap-2.5">
-            <div class="bg-slate-900/80 rounded-xl p-3 border border-slate-800 flex flex-col">
-              <span class="text-[11px] font-bold text-slate-400">WC Visitados</span>
-              <span class="text-lg font-black text-white mt-0.5">${user.stats.visited_count}</span>
+            <div class="bg-slate-800/80 border border-slate-700/60 rounded-2xl p-3.5 flex flex-col justify-between">
+              <span class="text-[11px] font-bold text-slate-400 flex items-center gap-1.5">
+                <span>🧼</span> <span>WC Más Limpio</span>
+              </span>
+              <div class="my-2">
+                <span class="text-sm font-black text-white block truncate">${records.cleanestWc.name}</span>
+                <span class="text-xs text-emerald-400 font-extrabold">Puntuación: ${records.cleanestWc.score}</span>
+              </div>
+              <span class="text-[10px] font-black uppercase text-emerald-400 bg-emerald-950/60 px-2 py-0.5 rounded w-max border border-emerald-500/30">
+                ${records.cleanestWc.tag}
+              </span>
             </div>
-            <div class="bg-slate-900/80 rounded-xl p-3 border border-slate-800 flex flex-col">
-              <span class="text-[11px] font-bold text-slate-400">WC Descubiertos</span>
-              <span class="text-lg font-black text-amber-400 mt-0.5">${user.stats.discovered_count}</span>
+
+            <div class="bg-slate-800/80 border border-slate-700/60 rounded-2xl p-3.5 flex flex-col justify-between">
+              <span class="text-[11px] font-bold text-slate-400 flex items-center gap-1.5">
+                <span>👃</span> <span>WC Con Peor Olor</span>
+              </span>
+              <div class="my-2">
+                <span class="text-sm font-black text-white block truncate">${records.worstOdorWc.name}</span>
+                <span class="text-xs text-amber-400 font-extrabold">Olor: ${records.worstOdorWc.score}</span>
+              </div>
+              <span class="text-[10px] font-black uppercase text-amber-400 bg-amber-950/60 px-2 py-0.5 rounded w-max border border-amber-500/30">
+                ${records.worstOdorWc.tag}
+              </span>
             </div>
-            <div class="bg-slate-900/80 rounded-xl p-3 border border-slate-800 flex flex-col">
-              <span class="text-[11px] font-bold text-slate-400">Verificaciones</span>
-              <span class="text-lg font-black text-emerald-400 mt-0.5">${user.stats.verifications_count}</span>
+
+            <div class="bg-slate-800/80 border border-slate-700/60 rounded-2xl p-3.5 flex flex-col justify-between">
+              <span class="text-[11px] font-bold text-slate-400 flex items-center gap-1.5">
+                <span>💰</span> <span>WC Más Caro Pagado</span>
+              </span>
+              <div class="my-2">
+                <span class="text-sm font-black text-white block truncate">${records.mostExpensiveWc.name}</span>
+                <span class="text-xs text-blue-400 font-extrabold">Precio: ${records.mostExpensiveWc.score}</span>
+              </div>
+              <span class="text-[10px] font-black uppercase text-blue-400 bg-blue-950/60 px-2 py-0.5 rounded w-max border border-blue-500/30">
+                ${records.mostExpensiveWc.tag}
+              </span>
             </div>
-            <div class="bg-slate-900/80 rounded-xl p-3 border border-slate-800 flex flex-col">
-              <span class="text-[11px] font-bold text-slate-400">Fotos Subidas</span>
-              <span class="text-lg font-black text-blue-400 mt-0.5">${user.stats.photos_count}</span>
+
+            <div class="bg-slate-800/80 border border-slate-700/60 rounded-2xl p-3.5 flex flex-col justify-between">
+              <span class="text-[11px] font-bold text-slate-400 flex items-center gap-1.5">
+                <span>✈️</span> <span>WC A Mayor Altura</span>
+              </span>
+              <div class="my-2">
+                <span class="text-sm font-black text-white block truncate">${records.highestAltitudeWc.name}</span>
+                <span class="text-xs text-purple-400 font-extrabold">Altitud: ${records.highestAltitudeWc.score}</span>
+              </div>
+              <span class="text-[10px] font-black uppercase text-purple-400 bg-purple-950/60 px-2 py-0.5 rounded w-max border border-purple-500/30">
+                ${records.highestAltitudeWc.tag}
+              </span>
             </div>
-            <div class="bg-slate-900/80 rounded-xl p-3 border border-slate-800 flex flex-col">
-              <span class="text-[11px] font-bold text-slate-400">Ciudades</span>
-              <span class="text-lg font-black text-purple-400 mt-0.5">${user.stats.cities_count}</span>
-            </div>
-            <div class="bg-slate-900/80 rounded-xl p-3 border border-slate-800 flex flex-col">
-              <span class="text-[11px] font-bold text-slate-400">WC Secretos</span>
-              <span class="text-lg font-black text-rose-400 mt-0.5">${user.stats.secrets_found}</span>
+
+            <div class="bg-slate-800/80 border border-slate-700/60 rounded-2xl p-3.5 flex flex-col justify-between">
+              <span class="text-[11px] font-bold text-slate-400 flex items-center gap-1.5">
+                <span>🌍</span> <span>WC Más Lejano</span>
+              </span>
+              <div class="my-2">
+                <span class="text-sm font-black text-white block truncate">${records.farthestWc.name}</span>
+                <span class="text-xs text-cyan-400 font-extrabold">Distancia: ${records.farthestWc.score}</span>
+              </div>
+              <span class="text-[10px] font-black uppercase text-cyan-400 bg-cyan-950/60 px-2 py-0.5 rounded w-max border border-cyan-500/30">
+                ${records.farthestWc.tag}
+              </span>
             </div>
           </div>
         </div>
 
-        <!-- Opciones de Desarrollo / Reset -->
-        <div class="bg-slate-800/60 border border-slate-700/50 rounded-2xl p-4 shadow flex flex-col gap-2">
-          <h3 class="text-xs font-black text-slate-400 uppercase tracking-wider">Gestión de Datos Locales</h3>
-          <p class="text-[11px] text-slate-400">Los datos se guardan de forma local en tu navegador (Local-First).</p>
-          <button id="reset-app-data-btn" class="bg-slate-700 hover:bg-rose-900/40 text-slate-300 hover:text-rose-300 font-bold text-xs py-2.5 px-3 rounded-xl transition border border-slate-600">
-            🔄 Restablecer Datos Iniciales de Prueba
-          </button>
+        <!-- 2. SELECTOR DE TÍTULOS DESBLOQUEABLES -->
+        <div class="bg-slate-900/80 border border-slate-800 rounded-3xl p-5 flex flex-col gap-3 shadow-md">
+          <h2 class="text-xs font-black uppercase tracking-wider text-slate-300 flex items-center gap-2">
+            <span>🏷️</span>
+            <span>Títulos Desbloqueados</span>
+          </h2>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            ${UNLOCKED_TITLES_POOL.map(t => {
+              const isSelected = t === user.title;
+              return `
+                <button class="title-pick-btn p-3 rounded-2xl border ${isSelected ? 'bg-amber-500/20 border-amber-500 text-amber-300 font-black shadow-sm' : 'bg-slate-800/60 border-slate-700/60 text-slate-300 hover:text-white font-bold'} text-left text-xs transition flex items-center justify-between" data-title="${t}">
+                  <span>${t}</span>
+                  ${isSelected ? `<span class="text-xs">✓ Activo</span>` : ''}
+                </button>
+              `;
+            }).join('')}
+          </div>
         </div>
+
+        <!-- 3. ESTADÍSTICAS GENERALES -->
+        <div class="bg-slate-900/80 border border-slate-800 rounded-3xl p-5 flex flex-col gap-3 shadow-md">
+          <h2 class="text-xs font-black uppercase tracking-wider text-slate-300 flex items-center gap-2">
+            <span>📊</span>
+            <span>Estadísticas de Explorador</span>
+          </h2>
+
+          <div class="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
+            <div class="bg-slate-800/80 p-3 rounded-2xl border border-slate-700/50">
+              <span class="text-[11px] font-bold text-slate-400">WC Visitados</span>
+              <span class="text-xl font-black text-white block mt-1">${user.stats.visited_count}</span>
+            </div>
+            <div class="bg-slate-800/80 p-3 rounded-2xl border border-slate-700/50">
+              <span class="text-[11px] font-bold text-slate-400">WC Descubiertos</span>
+              <span class="text-xl font-black text-amber-400 block mt-1">${user.stats.discovered_count}</span>
+            </div>
+            <div class="bg-slate-800/80 p-3 rounded-2xl border border-slate-700/50">
+              <span class="text-[11px] font-bold text-slate-400">Verificaciones</span>
+              <span class="text-xl font-black text-emerald-400 block mt-1">${user.stats.verifications_count}</span>
+            </div>
+            <div class="bg-slate-800/80 p-3 rounded-2xl border border-slate-700/50">
+              <span class="text-[11px] font-bold text-slate-400">Ciudades</span>
+              <span class="text-xl font-black text-blue-400 block mt-1">${user.stats.cities_count}</span>
+            </div>
+            <div class="bg-slate-800/80 p-3 rounded-2xl border border-slate-700/50">
+              <span class="text-[11px] font-bold text-slate-400">Países</span>
+              <span class="text-xl font-black text-purple-400 block mt-1">${user.stats.countries_count}</span>
+            </div>
+            <div class="bg-slate-800/80 p-3 rounded-2xl border border-slate-700/50">
+              <span class="text-[11px] font-bold text-slate-400">WC Secretos</span>
+              <span class="text-xl font-black text-rose-400 block mt-1">${user.stats.secrets_found}</span>
+            </div>
+          </div>
+        </div>
+
       </div>
     </div>
   `;
 
-  // Attach event listeners
-  const titleSelect = container.querySelector('#user-title-select');
-  if (titleSelect) {
-    titleSelect.addEventListener('change', (e) => {
-      user.title = e.target.value;
+  // Attach event listeners for title pick
+  const titleBtns = container.querySelectorAll('.title-pick-btn');
+  titleBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      const chosen = btn.getAttribute('data-title');
+      user.title = chosen;
       store.saveState();
-      store.showToast(`🏷️ Título cambiado a: ${user.title}`, 'info');
+      store.showToast(`🏷️ Título cambiado a: ${chosen}`, 'info');
       renderProfileView(container);
     });
-  }
-
-  const resetBtn = container.querySelector('#reset-app-data-btn');
-  if (resetBtn) {
-    resetBtn.addEventListener('click', () => {
-      if (confirm('¿Deseas restaurar la base de datos y usuario de prueba a los valores iniciales?')) {
-        store.resetToDefaults();
-        store.showToast('✅ Datos reiniciados con éxito', 'success');
-        renderProfileView(container);
-      }
-    });
-  }
+  });
 }
