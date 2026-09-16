@@ -1,24 +1,26 @@
 /**
- * WC HUNTER — Base de Datos Seed V1.0
- * Incluye WCs reales verificados, logros completos, colecciones, misiones y rankings.
+ * WC HUNTER — Base de Datos Seed V2.0
  */
 
 export const INITIAL_USER = {
   id: "usr_pol_01",
-  username: "Pol",
+  username: "PolM",
   avatar: "🧔‍♂️",
-  level: 27,
-  xp: 4820,
-  reputation: 94,
-  title: "🚽 Señor del Retrete",
-  streak_days: 12,
+  level: 18,
+  xp: 3840,
+  reputation: 96,
+  title: "🚽 Duque del Retrete",
+  streak_days: 7,
   unlocked_titles: [
-    "🚽 Señor del Retrete",
+    "🚽 Duque del Retrete",
     "💩 El Caganer",
     "🧻 Príncipe del Papel",
     "🧼 Inspector de Higiene",
     "👃 Nariz de Hierro",
-    "👑 Duque del Papel"
+    "✈️ Cagón de Altura",
+    "🔐 Maestro de los Secretos",
+    "🌍 Cagador Internacional",
+    "👑 Emperador del WC"
   ],
   stats: {
     visited_count: 87,
@@ -27,8 +29,8 @@ export const INITIAL_USER = {
     photos_count: 46,
     cities_count: 12,
     countries_count: 4,
-    achievements_count: 18,
-    secrets_found: 6
+    achievements_count: 34,
+    secrets_found: 7
   },
   unlocked_achievements: [
     "first_wc",
@@ -38,253 +40,34 @@ export const INITIAL_USER = {
     "railway_caganer",
     "emergency_caganer",
     "night_caganer",
-    "stadium_caganer"
+    "stadium_caganer",
+    "altitude_caganer"
   ],
-  collection_stickers: [
-    "trans_train",
-    "trans_airport",
-    "culture_prado",
-    "culture_reina_sofia",
-    "secret_hotel_w",
-    "secret_circulo_bellas_artes",
-    "secret_corte_ingles_callao"
-  ]
+  collection_counts: {
+    collected: 42,
+    total: 120
+  }
 };
 
-export const ACHIEVEMENTS_CATALOG = [
-  // Básicos
-  {
-    id: "first_wc",
-    name: "🚽 Primer Cagón",
-    description: "Utiliza y verifica tu primer WC en la aplicación.",
-    category: "basic",
-    rarity: "COMMON",
-    xp: 50,
-    hidden: false,
-    icon: "🚽"
-  },
-  {
-    id: "paper_hero",
-    name: "🧻 Héroe del Papel",
-    description: "Encuentra y reporta 10 WC con papel higiénico confirmado.",
-    category: "basic",
-    rarity: "COMMON",
-    xp: 100,
-    hidden: false,
-    icon: "🧻"
-  },
-  {
-    id: "clean_inspector",
-    name: "🧼 Inspector de Higiene",
-    description: "Valora la limpieza de al menos 10 WC diferentes.",
-    category: "basic",
-    rarity: "COMMON",
-    xp: 100,
-    hidden: false,
-    icon: "🧼"
-  },
-  {
-    id: "city_explorer",
-    name: "🌍 Explorador Urbano",
-    description: "Utiliza y verifica WC en al menos 3 ciudades diferentes.",
-    category: "exploration",
-    rarity: "RARE",
-    xp: 150,
-    hidden: false,
-    icon: "🌍"
-  },
-
-  // Especiales / Categorías
-  {
-    id: "altitude_caganer",
-    name: "✈️ Cagón de Altura",
-    description: "Verifica el WC de un avión a más de 10.000 metros.",
-    category: "special",
-    rarity: "MYTHIC",
-    xp: 500,
-    hidden: true,
-    icon: "✈️"
-  },
-  {
-    id: "railway_caganer",
-    name: "🚆 Cagón Ferroviario",
-    description: "Usa el WC de un tren de media o larga distancia en marcha.",
-    category: "special",
-    rarity: "EPIC",
-    xp: 200,
-    hidden: false,
-    icon: "🚆"
-  },
-  {
-    id: "stadium_caganer",
-    name: "🏟️ Cagón de Estadio",
-    description: "Sobrevive al baño de un gran estadio en día de partido o concierto.",
-    category: "special",
-    rarity: "EPIC",
-    xp: 250,
-    hidden: false,
-    icon: "🏟️"
-  },
-  {
-    id: "beach_caganer",
-    name: "🏖️ Cagón Playero",
-    description: "Localiza un WC a pie de playa con ducha o lavapiés funcional.",
-    category: "special",
-    rarity: "RARE",
-    xp: 120,
-    hidden: false,
-    icon: "🏖️"
-  },
-  {
-    id: "institutional_caganer",
-    name: "👮 Cagón Institucional",
-    description: "Documenta el servicio de un edificio público o administrativo.",
-    category: "special",
-    rarity: "RARE",
-    xp: 150,
-    hidden: false,
-    icon: "🏛️"
-  },
-  {
-    id: "hospital_caganer",
-    name: "🏥 Cagón Hospitalario",
-    description: "Encuentra el WC más tranquilo y limpio de un hospital.",
-    category: "special",
-    rarity: "RARE",
-    xp: 120,
-    hidden: false,
-    icon: "🏥"
-  },
-  {
-    id: "university_caganer",
-    name: "🎓 Cagón Universitario",
-    description: "Documenta el mítico baño secreto de la última planta de la facultad.",
-    category: "special",
-    rarity: "RARE",
-    xp: 120,
-    hidden: false,
-    icon: "🎓"
-  },
-
-  // Dinámicos / Circunstanciales
-  {
-    id: "night_caganer",
-    name: "🌙 Cagón Nocturno",
-    description: "Verifica un WC abierto entre la 01:00 y las 06:00 de la madrugada.",
-    category: "dynamic",
-    rarity: "RARE",
-    xp: 180,
-    hidden: false,
-    icon: "🌙"
-  },
-  {
-    id: "emergency_caganer",
-    name: "🚨 Cagón de Emergencia",
-    description: "Activa el modo 'Necesito WC' y completa una valoración tras usarlo.",
-    category: "dynamic",
-    rarity: "RARE",
-    xp: 150,
-    hidden: false,
-    icon: "🚨"
-  },
-  {
-    id: "speed_caganer",
-    name: "⏱️ Speed Caganer",
-    description: "Llega y verifica un WC en menos de 4 minutos tras la emergencia.",
-    category: "dynamic",
-    rarity: "EPIC",
-    xp: 250,
-    hidden: true,
-    icon: "⚡"
-  },
-  {
-    id: "secret_master",
-    name: "🔐 Maestro de los Secretos",
-    description: "Descubre y documenta 3 WCs clasificados como Secretos.",
-    category: "special",
-    rarity: "LEGENDARY",
-    xp: 350,
-    hidden: false,
-    icon: "🔐"
-  }
+export const UPCOMING_ACHIEVEMENTS = [
+  { id: "altitude_caganer", name: "✈️ Cagón de altura", progress: "1/1", completed: true, icon: "✈️" },
+  { id: "police_caganer", name: "🚓 Cagón de comisaría", progress: "0/1", completed: false, icon: "🚓" },
+  { id: "stadium_caganer", name: "🏟️ Cagón de estadio", progress: "2/1", completed: true, icon: "🏟️" },
+  { id: "secret_hunter", name: "🔐 Cazador secreto", progress: "4/10", completed: false, icon: "🔐" }
 ];
 
-export const MISSIONS_LIST = [
-  {
-    id: "mis_paper_10",
-    title: "🧻 Operación Papel",
-    description: "Verifica el papel higiénico de 2 WC hoy.",
-    progress: 1,
-    target: 2,
-    xp_reward: 80,
-    badge: "Diaria",
-    completed: false
-  },
-  {
-    id: "mis_clean_check",
-    title: "🧼 Patrulla de Limpieza",
-    description: "Confirma el estado de limpieza en cualquier WC de tu ciudad.",
-    progress: 0,
-    target: 1,
-    xp_reward: 50,
-    badge: "Diaria",
-    completed: false
-  },
-  {
-    id: "mis_secret_hunt",
-    title: "🔐 Cazador de Secretos",
-    description: "Visita o descubre 1 WC secreto no documentado.",
-    progress: 0,
-    target: 1,
-    xp_reward: 150,
-    badge: "Semanal",
-    completed: false
-  }
-];
-
-export const COLLECTIONS = [
-  {
-    id: "col_transports",
-    title: "Colección: Transportes",
-    description: "Domina los retretes de la movilidad terrestre y aérea.",
-    reward_title: "🏆 Viajero del Retrete",
-    stickers: [
-      { id: "trans_train", name: "Tren de Larga Distancia", icon: "🚆", collected: true },
-      { id: "trans_airport", name: "Aeropuerto Adolfo Suárez", icon: "✈️", collected: true },
-      { id: "trans_metro", name: "Estación de Metro", icon: "🚇", collected: false },
-      { id: "trans_plane", name: "Avión en Crucero", icon: "💺", collected: false }
-    ]
-  },
-  {
-    id: "col_culture",
-    title: "Templos de la Cultura",
-    description: "Los baños de los grandes museos y teatros.",
-    reward_title: "🎨 Intelectual del Baño",
-    stickers: [
-      { id: "culture_prado", name: "Museo del Prado", icon: "🏛️", collected: true },
-      { id: "culture_reina_sofia", name: "Reina Sofía", icon: "🖼️", collected: true },
-      { id: "culture_teatro_real", name: "Teatro Real", icon: "🎭", collected: false },
-      { id: "culture_sagrada_fam", name: "Cripta Sagrada Família", icon: "⛪", collected: false }
-    ]
-  },
-  {
-    id: "col_secrets",
-    title: "WCs Secretos & Clandestinos",
-    description: "Oasis de tranquilidad ocultos a simple vista.",
-    reward_title: "🔐 Fantasma de la Porcelana",
-    stickers: [
-      { id: "secret_hotel_w", name: "Hotel W Barcelona (Planta 26)", icon: "🏨", collected: true },
-      { id: "secret_circulo_bellas_artes", name: "Círculo de Bellas Artes", icon: "🎨", collected: true },
-      { id: "secret_corte_ingles_callao", name: "Gourmet Experience Callao", icon: "🛍️", collected: true },
-      { id: "secret_palacio_cibeles", name: "Palacio de Cibeles (Planta 6)", icon: "🏰", collected: false }
-    ]
-  }
+export const COLLECTION_CATEGORIES = [
+  { id: "public", name: "Públicos Urbanos", icon: "🚽", collected: 18, total: 30, color: "emerald" },
+  { id: "transport", name: "Transporte y Viajes", icon: "✈️", collected: 5, total: 12, color: "blue" },
+  { id: "culture", name: "Cultura y Museos", icon: "🏛️", collected: 4, total: 15, color: "amber" },
+  { id: "sports", name: "Deportes y Estadios", icon: "🏟️", collected: 3, total: 8, color: "indigo" },
+  { id: "secrets", name: "WCs Secretos", icon: "🔐", collected: 7, total: 20, color: "purple" }
 ];
 
 export const INITIAL_WCS = [
   {
     id: "wc_mad_prado",
-    name: "WC Museo del Prado (Claustro Planta Baja)",
+    name: "WC Museo del Prado (Claustro)",
     latitude: 40.41378,
     longitude: -3.69212,
     address: "Calle de Ruiz de Alarcón, 23",
@@ -293,8 +76,8 @@ export const INITIAL_WCS = [
     type: "museum",
     rarity: "RARE",
     difficulty: 3,
-    access_type: "ticket_required",
-    access_label: "🎫 Entrada al Museo / Gratuito 18-20h",
+    access_type: "free",
+    access_label: "Entrada Museo / Gratuito 18-20h",
     price: 0.0,
     opening_hours: "10:00 - 20:00",
     equipment: {
@@ -308,7 +91,7 @@ export const INITIAL_WCS = [
       bidet: false,
       lock_functional: true
     },
-    score: 93,
+    score: 94,
     score_breakdown: {
       cleanliness: 96,
       odor: 92,
@@ -316,79 +99,27 @@ export const INITIAL_WCS = [
       soap: 95,
       privacy: 90,
       condition: 94,
-      price: 85
+      price: 90
     },
     confidence: 96,
     current_status: "open",
     personality_tag: "👑 EL PALACIO",
-    personality_desc: "Mármol impoluto, música clásica de fondo y dispensadores automáticos siempre llenos.",
-    last_verified_at: new Date(Date.now() - 1000 * 60 * 18).toISOString(), // hace 18 min
-    would_return_ratio: { yes: 94, no: 6 },
+    personality_desc: "Mármol impoluto, música clásica tenue y dispensadores siempre llenos.",
+    last_verified_at: new Date(Date.now() - 1000 * 60 * 4).toISOString(), // hace 4 min
+    would_return_ratio: { yes: 48, no: 2 },
     is_secret: false,
+    discovered_by: "PolM",
+    discovered_date: "16 sept 2026",
+    verified_by_count: 14,
     photos: [
       {
         url: "https://images.unsplash.com/photo-1584622650111-993a426fbf0a?auto=format&fit=crop&w=600&q=80",
-        caption: "Lavabos de diseño en la planta baja",
+        caption: "Lavabos de mármol en planta baja",
         uploaded_at: new Date(Date.now() - 1000 * 60 * 60 * 24 * 2).toISOString(),
         category: "cleanliness"
       }
     ],
-    creator_name: "Pol",
     reviews_count: 52
-  },
-  {
-    id: "wc_mad_atocha",
-    name: "WC Estación Atocha Cercanías (Jardín Tropical)",
-    latitude: 40.40656,
-    longitude: -3.69085,
-    address: "Plaza del Emperador Carlos V",
-    city: "Madrid",
-    country: "España",
-    type: "train",
-    rarity: "COMMON",
-    difficulty: 4,
-    access_type: "paid",
-    access_label: "💰 1,00 € (Torno con tarjeta)",
-    price: 1.0,
-    opening_hours: "06:00 - 23:30",
-    equipment: {
-      paper: true,
-      soap: true,
-      water: true,
-      mirror: true,
-      dryer: true,
-      baby_changing: true,
-      wheelchair: true,
-      bidet: false,
-      lock_functional: true
-    },
-    score: 82,
-    score_breakdown: {
-      cleanliness: 88,
-      odor: 80,
-      paper: 95,
-      soap: 90,
-      privacy: 85,
-      condition: 84,
-      price: 60
-    },
-    confidence: 91,
-    current_status: "open",
-    personality_tag: "💎 EL WC PREMIUM",
-    personality_desc: "De pago (One Hundred Restrooms), pero con asiento autodesinfectante y música chillout.",
-    last_verified_at: new Date(Date.now() - 1000 * 60 * 42).toISOString(), // hace 42 min
-    would_return_ratio: { yes: 88, no: 12 },
-    is_secret: false,
-    photos: [
-      {
-        url: "https://images.unsplash.com/photo-1552321554-5fefe8c9ef14?auto=format&fit=crop&w=600&q=80",
-        caption: "Tornos de acceso y pantallas interactivas",
-        uploaded_at: new Date(Date.now() - 1000 * 60 * 60 * 24 * 5).toISOString(),
-        category: "access"
-      }
-    ],
-    creator_name: "CaganerPro",
-    reviews_count: 88
   },
   {
     id: "wc_mad_callao_corte",
@@ -402,7 +133,7 @@ export const INITIAL_WCS = [
     rarity: "LEGENDARY",
     difficulty: 6,
     access_type: "free",
-    access_label: "🆓 Gratis (Entra al fondo a la derecha del Gourmet)",
+    access_label: "Entrada libre por planta Gourmet",
     price: 0.0,
     opening_hours: "10:00 - 22:00",
     equipment: {
@@ -416,7 +147,7 @@ export const INITIAL_WCS = [
       bidet: false,
       lock_functional: true
     },
-    score: 95,
+    score: 96,
     score_breakdown: {
       cleanliness: 98,
       odor: 95,
@@ -426,37 +157,81 @@ export const INITIAL_WCS = [
       condition: 96,
       price: 100
     },
-    confidence: 94,
+    confidence: 97,
     current_status: "open",
     personality_tag: "👑 EL PALACIO",
-    personality_desc: "El mejor baño gratuito del centro de Madrid. Vistas panorámicas y privacidad absoluta.",
-    last_verified_at: new Date(Date.now() - 1000 * 60 * 12).toISOString(), // hace 12 min
-    would_return_ratio: { yes: 98, no: 2 },
+    personality_desc: "El mejor baño gratuito del centro de Madrid con vistas panorámicas.",
+    last_verified_at: new Date(Date.now() - 1000 * 60 * 8).toISOString(), // hace 8 min
+    would_return_ratio: { yes: 62, no: 1 },
     is_secret: true,
-    photos: [
-      {
-        url: "https://images.unsplash.com/photo-1620626011761-996317b8d101?auto=format&fit=crop&w=600&q=80",
-        caption: "Cabinas individuales amplias y silenciosas",
-        uploaded_at: new Date(Date.now() - 1000 * 60 * 60 * 10).toISOString(),
-        category: "cleanliness"
-      }
-    ],
-    creator_name: "Pol",
+    discovered_by: "PolM",
+    discovered_date: "14 sept 2026",
+    verified_by_count: 22,
+    photos: [],
     reviews_count: 42
+  },
+  {
+    id: "wc_mad_atocha",
+    name: "WC Atocha (One Hundred Restrooms)",
+    latitude: 40.40656,
+    longitude: -3.69085,
+    address: "Plaza del Emperador Carlos V",
+    city: "Madrid",
+    country: "España",
+    type: "train",
+    rarity: "COMMON",
+    difficulty: 4,
+    access_type: "paid",
+    access_label: "1,00 € con tarjeta en torno",
+    price: 1.0,
+    opening_hours: "06:00 - 23:30",
+    equipment: {
+      paper: true,
+      soap: true,
+      water: true,
+      mirror: true,
+      dryer: true,
+      baby_changing: true,
+      wheelchair: true,
+      bidet: false,
+      lock_functional: true
+    },
+    score: 84,
+    score_breakdown: {
+      cleanliness: 90,
+      odor: 82,
+      paper: 95,
+      soap: 92,
+      privacy: 85,
+      condition: 86,
+      price: 60
+    },
+    confidence: 94,
+    current_status: "open",
+    personality_tag: "💎 EL WC PREMIUM",
+    personality_desc: "De pago, pero con autodesinfección de asiento e hilo musical.",
+    last_verified_at: new Date(Date.now() - 1000 * 60 * 25).toISOString(),
+    would_return_ratio: { yes: 78, no: 10 },
+    is_secret: false,
+    discovered_by: "CaganerPro",
+    discovered_date: "10 sept 2026",
+    verified_by_count: 35,
+    photos: [],
+    reviews_count: 88
   },
   {
     id: "wc_mad_sol_public",
     name: "Cabina Autolimpiable Puerta del Sol",
     latitude: 40.41695,
     longitude: -3.70356,
-    address: "Puerta del Sol esquina Calle Alcalá",
+    address: "Puerta del Sol s/n",
     city: "Madrid",
     country: "España",
     type: "public_street",
     rarity: "COMMON",
     difficulty: 2,
     access_type: "paid",
-    access_label: "💰 0,50 € (Moneda exacta)",
+    access_label: "0,50 € (Moneda exacta)",
     price: 0.5,
     opening_hours: "24 Horas",
     equipment: {
@@ -470,12 +245,12 @@ export const INITIAL_WCS = [
       bidet: false,
       lock_functional: true
     },
-    score: 64,
+    score: 62,
     score_breakdown: {
-      cleanliness: 60,
-      odor: 55,
-      paper: 80,
-      soap: 70,
+      cleanliness: 55,
+      odor: 45,
+      paper: 75,
+      soap: 65,
       privacy: 75,
       condition: 60,
       price: 70
@@ -483,27 +258,29 @@ export const INITIAL_WCS = [
     confidence: 88,
     current_status: "open",
     personality_tag: "🏚️ EL SUPERVIVIENTE",
-    personality_desc: "Suelo habitualmente mojado tras el lavado automático. Te saca de un apuro de madrugada.",
-    last_verified_at: new Date(Date.now() - 1000 * 60 * 75).toISOString(),
-    would_return_ratio: { yes: 61, no: 39 },
+    personality_desc: "Suelo mojado por el ciclo de lavado. Te salva en una noche de fiesta.",
+    last_verified_at: new Date(Date.now() - 1000 * 60 * 55).toISOString(),
+    would_return_ratio: { yes: 35, no: 28 },
     is_secret: false,
+    discovered_by: "SolWalker",
+    discovered_date: "12 sept 2026",
+    verified_by_count: 19,
     photos: [],
-    creator_name: "SolWalker",
     reviews_count: 34
   },
   {
     id: "wc_mad_cibeles_palace",
-    name: "WC CentroCentro Palacio de Cibeles (Planta 3)",
+    name: "WC CentroCentro Palacio de Cibeles",
     latitude: 40.41873,
     longitude: -3.69234,
-    address: "Plaza de Cibeles, 1",
+    address: "Plaza de Cibeles, 1 (Planta 3)",
     city: "Madrid",
     country: "España",
     type: "public_building",
     rarity: "RARE",
     difficulty: 4,
     access_type: "free",
-    access_label: "🆓 Entrada libre al edificio cultural",
+    access_label: "Entrada libre al edificio",
     price: 0.0,
     opening_hours: "10:00 - 20:00",
     equipment: {
@@ -519,122 +296,30 @@ export const INITIAL_WCS = [
     },
     score: 91,
     score_breakdown: {
-      cleanliness: 94,
+      cleanliness: 93,
       odor: 90,
       paper: 95,
-      soap: 92,
+      soap: 90,
       privacy: 88,
-      condition: 92,
+      condition: 90,
       price: 95
     },
-    confidence: 90,
+    confidence: 92,
     current_status: "open",
     personality_tag: "👑 EL PALACIO",
-    personality_desc: "Muy poco transitado entre semana. Cabinas de madera y lavamanos siempre impecables.",
-    last_verified_at: new Date(Date.now() - 1000 * 60 * 120).toISOString(),
-    would_return_ratio: { yes: 93, no: 7 },
+    personality_desc: "Gran tranquilidad entre semana. Cabinas de madera muy cuidadas.",
+    last_verified_at: new Date(Date.now() - 1000 * 60 * 110).toISOString(),
+    would_return_ratio: { yes: 41, no: 3 },
     is_secret: true,
+    discovered_by: "PolM",
+    discovered_date: "15 sept 2026",
+    verified_by_count: 8,
     photos: [],
-    creator_name: "MadridHunter",
     reviews_count: 26
   },
   {
-    id: "wc_mad_retiro_lake",
-    name: "WC Público Parque de El Retiro (Junto al Estanque)",
-    latitude: 40.41682,
-    longitude: -3.68351,
-    address: "Paseo de Colombia, Parque de El Retiro",
-    city: "Madrid",
-    country: "España",
-    type: "public_park",
-    rarity: "COMMON",
-    difficulty: 2,
-    access_type: "free",
-    access_label: "🆓 Gratuito (Horario parque)",
-    price: 0.0,
-    opening_hours: "09:00 - 21:00",
-    equipment: {
-      paper: false,
-      soap: true,
-      water: true,
-      mirror: true,
-      dryer: false,
-      baby_changing: true,
-      wheelchair: true,
-      bidet: false,
-      lock_functional: true
-    },
-    score: 52,
-    score_breakdown: {
-      cleanliness: 48,
-      odor: 42,
-      paper: 30,
-      soap: 60,
-      privacy: 70,
-      condition: 50,
-      price: 90
-    },
-    confidence: 84,
-    current_status: "open",
-    personality_tag: "🌵 EL DESIERTO",
-    personality_desc: "Casi siempre sin papel higiénico. Lleva tus propios pañuelos o sufre las consecuencias.",
-    last_verified_at: new Date(Date.now() - 1000 * 60 * 30).toISOString(),
-    would_return_ratio: { yes: 45, no: 55 },
-    is_secret: false,
-    photos: [],
-    creator_name: "RunnerRetiro",
-    reviews_count: 65
-  },
-  {
-    id: "wc_bcn_placa_cat",
-    name: "WC El Triangle (Plaza Catalunya)",
-    latitude: 41.38672,
-    longitude: 2.16912,
-    address: "Plaça de Catalunya, 1-4",
-    city: "Barcelona",
-    country: "España",
-    type: "shopping_mall",
-    rarity: "COMMON",
-    difficulty: 3,
-    access_type: "paid",
-    access_label: "💰 0,80 € (O ticket de compra)",
-    price: 0.8,
-    opening_hours: "09:30 - 21:30",
-    equipment: {
-      paper: true,
-      soap: true,
-      water: true,
-      mirror: true,
-      dryer: true,
-      baby_changing: true,
-      wheelchair: true,
-      bidet: false,
-      lock_functional: true
-    },
-    score: 84,
-    score_breakdown: {
-      cleanliness: 90,
-      odor: 86,
-      paper: 95,
-      soap: 90,
-      privacy: 82,
-      condition: 85,
-      price: 70
-    },
-    confidence: 93,
-    current_status: "open",
-    personality_tag: "💎 EL WC PREMIUM",
-    personality_desc: "Rápido, limpio y con personal constante de limpieza en la puerta.",
-    last_verified_at: new Date(Date.now() - 1000 * 60 * 15).toISOString(),
-    would_return_ratio: { yes: 89, no: 11 },
-    is_secret: false,
-    photos: [],
-    creator_name: "BcnRamblas",
-    reviews_count: 112
-  },
-  {
     id: "wc_bcn_hotel_w",
-    name: "WC Secreto Eclipse Lounge Hotel W (Planta 26)",
+    name: "WC Eclipse Lounge Hotel W (Planta 26)",
     latitude: 41.36884,
     longitude: 2.19015,
     address: "Plaça Rosa dels Vents, 1",
@@ -644,7 +329,7 @@ export const INITIAL_WCS = [
     rarity: "MYTHIC",
     difficulty: 9,
     access_type: "customers_only",
-    access_label: "🍸 Solo clientes o acceso seguro por ascensor",
+    access_label: "Solo clientes o acceso seguro ascensor",
     price: 0.0,
     opening_hours: "18:00 - 02:00",
     equipment: {
@@ -666,25 +351,27 @@ export const INITIAL_WCS = [
       soap: 100,
       privacy: 98,
       condition: 100,
-      price: 88
+      price: 85
     },
-    confidence: 89,
+    confidence: 90,
     current_status: "open",
     personality_tag: "👑 EL PALACIO",
-    personality_desc: "El santo grial de los baños con vistas al mar Mediterráneo desde 100 metros de altura.",
+    personality_desc: "El santo grial con vistas panorámicas al mar a 100 metros de altura.",
     last_verified_at: new Date(Date.now() - 1000 * 60 * 180).toISOString(),
-    would_return_ratio: { yes: 99, no: 1 },
+    would_return_ratio: { yes: 54, no: 1 },
     is_secret: true,
+    discovered_by: "PolM",
+    discovered_date: "15 sept 2026",
+    verified_by_count: 18,
     photos: [],
-    creator_name: "Pol",
     reviews_count: 19
   }
 ];
 
 export const TOP_HUNTERS_LEADERBOARD = [
   { rank: 1, name: "🚽 MasterFlush_99", title: "👑 Leyenda del Retrete", xp: 12450, discovered: 42, verifs: 310, rep: 98, city: "Madrid" },
-  { rank: 2, name: "Pol (Tú)", title: "🚽 Señor del Retrete", xp: 4820, discovered: 14, verifs: 132, rep: 94, city: "Madrid" },
-  { rank: 3, name: "🧻 PapelMan", title: "Príncipe del Papel", xp: 4100, discovered: 11, verifs: 98, rep: 92, city: "Barcelona" },
-  { rank: 4, name: "LaReinaDelTrono", title: "Inspectora Suprema", xp: 3750, discovered: 9, verifs: 114, rep: 95, city: "Valencia" },
-  { rank: 5, name: "CaganerNinja", title: "Explorador de Cloacas", xp: 3200, discovered: 8, verifs: 76, rep: 89, city: "Sevilla" }
+  { rank: 2, name: "PolM (Tú)", title: "🚽 Duque del Retrete", xp: 3840, discovered: 14, verifs: 132, rep: 96, city: "Madrid" },
+  { rank: 3, name: "🧻 PapelMan", title: "Príncipe del Papel", xp: 3510, discovered: 11, verifs: 98, rep: 92, city: "Barcelona" },
+  { rank: 4, name: "LaReinaDelTrono", title: "Inspectora Suprema", xp: 3250, discovered: 9, verifs: 114, rep: 95, city: "Valencia" },
+  { rank: 5, name: "CaganerNinja", title: "Explorador de Cloacas", xp: 2900, discovered: 8, verifs: 76, rep: 89, city: "Sevilla" }
 ];
