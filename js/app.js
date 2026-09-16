@@ -1,5 +1,5 @@
 /**
- * WC HUNTER — Orquestador de la Aplicación V1.0
+ * WC HUNTER — Orquestador de la Aplicación V2.0
  */
 import { store } from './state.js';
 import { renderMapView } from './views/mapView.js';
@@ -16,25 +16,23 @@ class App {
     this.modalContainer = document.getElementById('modal-container');
     this.addModalContainer = document.getElementById('add-modal-container');
     this.toastContainer = document.getElementById('toast-container');
-    this.navButtons = document.querySelectorAll('.nav-tab-btn');
+    this.navButtons = document.querySelectorAll('.nav-tab-btn, .sidebar-link');
 
     this.audioCtx = null;
     this.initAudio();
     this.bindEvents();
     this.subscribeToStore();
+    this.updateSidebarUserCard();
     this.renderCurrentView();
   }
 
-  // Sintetizador Web Audio API para micro-feedback de sonido sin dependencias
   initAudio() {
     try {
       const AudioContext = window.AudioContext || window.webkitAudioContext;
       if (AudioContext) {
         this.audioCtx = new AudioContext();
       }
-    } catch (e) {
-      console.log('Web Audio no disponible:', e);
-    }
+    } catch (e) {}
   }
 
   playSound(type = 'click') {
@@ -51,7 +49,6 @@ class App {
     const now = this.audioCtx.currentTime;
 
     if (type === 'xp') {
-      // Tono ascendente para XP
       osc.frequency.setValueAtTime(440, now);
       osc.frequency.exponentialRampToValueAtTime(880, now + 0.15);
       gain.gain.setValueAtTime(0.2, now);
@@ -59,16 +56,14 @@ class App {
       osc.start(now);
       osc.stop(now + 0.15);
     } else if (type === 'achievement') {
-      // Fanfarria breve de logro
-      osc.frequency.setValueAtTime(523.25, now); // C5
-      osc.frequency.setValueAtTime(659.25, now + 0.1); // E5
-      osc.frequency.setValueAtTime(783.99, now + 0.2); // G5
+      osc.frequency.setValueAtTime(523.25, now);
+      osc.frequency.setValueAtTime(659.25, now + 0.1);
+      osc.frequency.setValueAtTime(783.99, now + 0.2);
       gain.gain.setValueAtTime(0.3, now);
       gain.gain.exponentialRampToValueAtTime(0.01, now + 0.35);
       osc.start(now);
       osc.stop(now + 0.35);
     } else if (type === 'emergency') {
-      // Alarma de emergencia
       osc.type = 'sawtooth';
       osc.frequency.setValueAtTime(800, now);
       osc.frequency.linearRampToValueAtTime(400, now + 0.2);
@@ -86,6 +81,20 @@ class App {
         store.setTab(tab);
       });
     });
+
+    const sidebarAddBtn = document.getElementById('sidebar-add-wc-btn');
+    if (sidebarAddBtn) {
+      sidebarAddBtn.addEventListener('click', () => {
+        store.openAddModal();
+      });
+    }
+
+    const userCard = document.getElementById('sidebar-user-card');
+    if (userCard) {
+      userCard.addEventListener('click', () => {
+        store.setTab('profile');
+      });
+    }
   }
 
   subscribeToStore() {
@@ -99,6 +108,7 @@ class App {
         renderAddWcModal(this.addModalContainer);
       } else if (event === 'XP_EARNED') {
         this.playSound('xp');
+        this.updateSidebarUserCard();
       } else if (event === 'ACHIEVEMENT_UNLOCKED') {
         this.playSound('achievement');
       } else if (event === 'EMERGENCY_TOGGLED') {
@@ -106,8 +116,6 @@ class App {
         this.renderCurrentView();
       } else if (event === 'TOAST_ADDED' || event === 'TOAST_REMOVED') {
         this.renderToasts();
-      } else if (event === 'FILTER_CHANGED' || event === 'SEARCH_CHANGED') {
-        // En ciertas vistas se re-renderiza localmente
       }
     });
   }
@@ -121,6 +129,19 @@ class App {
         btn.classList.remove('active');
       }
     });
+  }
+
+  updateSidebarUserCard() {
+    const user = store.user;
+    const avatarEl = document.getElementById('sidebar-avatar');
+    const userEl = document.getElementById('sidebar-username');
+    const titleEl = document.getElementById('sidebar-title');
+    const streakEl = document.getElementById('sidebar-streak');
+
+    if (avatarEl) avatarEl.textContent = user.avatar;
+    if (userEl) userEl.textContent = user.username;
+    if (titleEl) titleEl.textContent = user.title;
+    if (streakEl) streakEl.textContent = `🔥 ${user.streak_days}d`;
   }
 
   renderCurrentView() {
@@ -168,7 +189,6 @@ class App {
   }
 }
 
-// Inicializar al cargar el DOM
 document.addEventListener('DOMContentLoaded', () => {
   window.wcHunterApp = new App();
 });
