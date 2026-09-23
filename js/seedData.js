@@ -53,7 +53,7 @@ export const UPCOMING_ACHIEVEMENTS = [
   { id: "altitude_caganer", name: "✈️ Cagón de altura", progress: "1/1", completed: true, icon: "✈️" },
   { id: "police_caganer", name: "🚓 Cagón de comisaría", progress: "0/1", completed: false, icon: "🚓" },
   { id: "stadium_caganer", name: "🏟️ Cagón de estadio", progress: "2/1", completed: true, icon: "🏟️" },
-  { id: "secret_hunter", name: "🔐 Cazador secreto", progress: "4/10", completed: false, icon: "🔐" }
+  { id: "secret_master", name: "🔐 Maestro de los Secretos", progress: "4/5", completed: false, icon: "🔐" }
 ];
 
 export const ACHIEVEMENTS_CATALOG = [

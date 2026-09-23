@@ -107,6 +107,7 @@ class App {
       } else if (event === 'ADD_MODAL_OPEN' || event === 'ADD_MODAL_CLOSE' || event === 'WC_CREATED') {
         renderAddWcModal(this.addModalContainer);
       } else if (event === 'XP_EARNED') {
+        // BUG-02: NO llamar renderCurrentView() aquí — destruye el mapa Leaflet
         this.playSound('xp');
         this.updateSidebarUserCard();
       } else if (event === 'ACHIEVEMENT_UNLOCKED') {
@@ -116,6 +117,9 @@ class App {
         this.renderCurrentView();
       } else if (event === 'TOAST_ADDED' || event === 'TOAST_REMOVED') {
         this.renderToasts();
+      } else if (event === 'USER_UPDATED') {
+        // BUG-10: actualizar sidebar cuando el usuario cambia su título
+        this.updateSidebarUserCard();
       }
     });
   }

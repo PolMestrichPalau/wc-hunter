@@ -15,10 +15,21 @@ class MapManager {
   }
 
   init(containerId = 'map-container', onMarkerClick = null) {
-    if (!window.L) return;
-
     const el = document.getElementById(containerId);
     if (!el) return;
+
+    if (!window.L) {
+      // BUG-13: mostrar mensaje de error visible si Leaflet no cargó (sin conexión, etc.)
+      el.innerHTML = `
+        <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;background:#080c14;color:#94a3b8;text-align:center;padding:24px;gap:12px;">
+          <span style="font-size:48px;">🗺️</span>
+          <p style="font-size:13px;font-weight:800;color:#f8fafc;">Mapa no disponible</p>
+          <p style="font-size:12px;">Sin conexión a Internet. El mapa requiere acceso a la red.</p>
+          <button onclick="window.location.reload()" style="margin-top:8px;background:#f59e0b;color:#000;font-weight:800;font-size:12px;padding:8px 20px;border-radius:12px;border:none;cursor:pointer;">🔄 Reintentar</button>
+        </div>
+      `;
+      return;
+    }
 
     // Si ya había una instancia previa de Leaflet, la destruimos de forma segura
     if (this.map) {

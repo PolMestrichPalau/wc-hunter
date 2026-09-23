@@ -2,7 +2,9 @@
  * WC HUNTER — State Manager & Store Reactivo Local-First
  */
 import { INITIAL_USER, INITIAL_WCS, ACHIEVEMENTS_CATALOG, MISSIONS_LIST, COLLECTIONS } from './seedData.js';
-import { calculateUserLevel, calculateConfidence, calculateWCScore, calculateRarityAndDifficulty, calculateXPForAction } from './algorithms.js';
+import { calculateUserLevel, calculateRarityAndDifficulty, calculateXPForAction } from './algorithms.js';
+import { calculateWCScore, calculateConfidence } from './engines/wcEngine.js';
+
 
 const STORAGE_KEY = 'wc_hunter_state_v2';
 
@@ -124,8 +126,20 @@ class Store {
   }
 
   notify(event, payload) {
-    this.saveState();
-    this.subscribers.forEach(cb => cb(event, payload));
+    // Solo guardamos estado en eventos que modifican datos reales (no toasts efímeros)
+    const PERSIST_EVENTS = new Set([
+      'TAB_CHANGED', 'WC_SELECTED', 'WC_DESELECTED', 'WC_VERIFIED',
+      'WC_CREATED', 'XP_EARNED', 'ACHIEVEMENT_UNLOCKED', 'LEVEL_UP',
+      'EMERGENCY_TOGGLED', 'FILTER_CHANGED', 'SEARCH_CHANGED',
+      'ADD_MODAL_OPEN', 'ADD_MODAL_CLOSE', 'USER_UPDATED'
+    ]);
+    if (PERSIST_EVENTS.has(event)) {
+      this.saveState();
+    }
+    // BUG-17: aislar errores de cada suscriptor para no bloquear los demás
+    this.subscribers.forEach(cb => {
+      try { cb(event, payload); } catch (e) { console.error('WC Hunter subscriber error:', e); }
+    });
   }
 
   showToast(message, type = 'info', duration = 3500) {
@@ -339,6 +353,7 @@ class Store {
         category: 'general'
       }] : [],
       creator_name: this.user.username,
+      discovered_by: this.user.username,
       reviews_count: 1
     };
 
@@ -402,6 +417,10 @@ class Store {
           break;
         case 'private':
           list.sort((a, b) => (b.score_breakdown?.privacy || 0) - (a.score_breakdown?.privacy || 0));
+          break;
+        case 'equipped':
+          list = list.filter(w => w.equipment.paper && w.equipment.soap);
+          list.sort((a, b) => b.score - a.score);
           break;
         case 'baby':
           list = list.filter(w => w.equipment.baby_changing);

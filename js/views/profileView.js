@@ -193,7 +193,8 @@ export function renderProfileView(container) {
     btn.addEventListener('click', () => {
       const chosen = btn.getAttribute('data-title');
       user.title = chosen;
-      store.saveState();
+      // BUG-10: usar notify para que app.js actualice el sidebar inmediatamente
+      store.notify('USER_UPDATED', user);
       store.showToast(`🏷️ Título cambiado a: ${chosen}`, 'info');
       renderProfileView(container);
     });

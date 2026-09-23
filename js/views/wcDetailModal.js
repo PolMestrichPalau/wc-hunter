@@ -269,23 +269,23 @@ export function renderWcDetailModal(container) {
     bindToggle('[data-v2-soap]');
     bindToggle('[data-v2-clean]');
 
-    form.addEventListener('submit', (e) => {
-      e.preventDefault();
-      const statusBtn = form.querySelector('[data-v2-status].active');
-      const paperBtn = form.querySelector('[data-v2-paper].active');
-      const soapBtn = form.querySelector('[data-v2-soap].active');
-      const cleanBtn = form.querySelector('[data-v2-clean].active');
+      form.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const statusBtn = form.querySelector('[data-v2-status].active');
+        const paperBtn = form.querySelector('[data-v2-paper].active');
+        const soapBtn = form.querySelector('[data-v2-soap].active');
+        const cleanBtn = form.querySelector('[data-v2-clean].active');
 
-      const report = {
-        status: statusBtn?.getAttribute('data-v2-status') || 'open',
-        has_paper: paperBtn?.getAttribute('data-v2-paper') === 'true',
-        has_soap: soapBtn?.getAttribute('data-v2-soap') === 'true',
-        cleanliness: cleanBtn?.getAttribute('data-v2-clean') || 'clean'
-      };
+        const report = {
+          status: statusBtn?.getAttribute('data-v2-status') || 'open',
+          has_paper: paperBtn?.getAttribute('data-v2-paper') === 'true',
+          has_soap: soapBtn?.getAttribute('data-v2-soap') === 'true',
+          cleanliness: cleanBtn?.getAttribute('data-v2-clean') || 'clean'
+        };
 
-      store.verifyWC(wc.id, report);
-      store.showToast('✅ ¡Verificación registrada! +15 XP', 'success');
-      renderWcDetailModal(container);
-    });
+        // BUG-03: verifyWC ya lanza toast de +15 XP internamente vía addXP — no duplicar
+        store.verifyWC(wc.id, report);
+        renderWcDetailModal(container);
+      });
   }
 }
