@@ -26,6 +26,11 @@
     try { localStorage.removeItem('wc_hunter_state_v1'); } catch(e) {}
   </script>
 
+  <!-- Fonts: Plus Jakarta Sans -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
@@ -34,15 +39,43 @@
       theme: {
         extend: {
           colors: {
+            surface: {
+              DEFAULT: '#0b1326',
+              dim: '#060e20',
+              container: '#131b2e',
+              'container-low': '#131b2e',
+              'container-high': '#222a3d',
+              'container-highest': '#2d3449'
+            },
+            primary: {
+              DEFAULT: '#10b981',
+              hover: '#059669',
+              light: '#4edea3',
+              glow: 'rgba(16, 185, 129, 0.4)'
+            },
+            secondary: {
+              DEFAULT: '#06b6d4',
+              hover: '#0891b2',
+              glow: 'rgba(6, 182, 212, 0.4)'
+            },
+            accent: {
+              amber: '#f59e0b',
+              red: '#ef4444',
+              purple: '#a855f7'
+            },
             hunter: {
-              app: '#080c14',
-              sidebar: '#0f172a',
-              surface: '#111827',
+              app: '#0b1326',
+              sidebar: '#060e20',
+              surface: '#131b2e',
               gold: '#f59e0b',
               clean: '#10b981',
+              cyan: '#06b6d4',
               panic: '#ef4444',
               secret: '#a855f7'
             }
+          },
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', 'system-ui', 'sans-serif']
           }
         }
       }

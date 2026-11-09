@@ -131,35 +131,35 @@ export function renderNearView(container) {
           const walkMin = Math.max(1, Math.round(wc.distanceMeters / 80));
 
           return `
-            <div class="bg-slate-900/90 border border-slate-800 hover:border-slate-700 rounded-2xl p-4 shadow-md transition flex flex-col gap-2.5 cursor-pointer wc-rescue-card" data-wc-id="${wc.id}">
+            <div class="bg-surface-container/90 border border-white/10 hover:border-emerald-500/40 rounded-3xl p-4.5 shadow-xl transition-all active:scale-[0.99] flex flex-col gap-3 cursor-pointer wc-rescue-card" data-wc-id="${wc.id}">
               
               <!-- Línea 1: Nombre + Distancia + WC Score -->
               <div class="flex items-start justify-between gap-3">
                 <div class="min-w-0 flex-1">
-                  <div class="flex items-center gap-2 mb-1">
-                    <span class="text-sm font-black text-white truncate">${wc.name}</span>
-                    ${wc.is_secret ? `<span class="text-[10px] font-black bg-purple-950 text-purple-300 px-1.5 py-0.5 rounded border border-purple-500/30">🔐 SECRETO</span>` : ''}
+                  <div class="flex items-center gap-2 mb-1 flex-wrap">
+                    <span class="text-sm font-extrabold text-white truncate">${wc.name}</span>
+                    <span class="text-[11px] font-bold text-cyan-400 bg-cyan-950/60 border border-cyan-500/30 px-2 py-0.5 rounded-full">
+                      📍 ${distStr} (~${walkMin} min)
+                    </span>
+                    ${wc.is_secret ? `<span class="text-[10px] font-black bg-purple-950 text-purple-300 px-1.5 py-0.5 rounded-full border border-purple-500/30">🔐 SECRETO</span>` : ''}
                   </div>
                   <div class="flex items-center gap-2 text-xs font-semibold text-slate-400">
-                    <span class="text-amber-400 font-bold">${distStr} (~${walkMin} min a pie)</span>
-                    <span>·</span>
                     <span class="truncate">${wc.address}</span>
                   </div>
                 </div>
 
-                <!-- Score Dial Compacto -->
-                <div class="flex flex-col items-end flex-shrink-0">
-                  <div class="text-lg font-black ${wc.score >= 85 ? 'text-emerald-400' : (wc.score >= 70 ? 'text-amber-400' : 'text-rose-400')} leading-none">
-                    ${wc.score}<span class="text-[11px] text-slate-500 font-normal">/100</span>
+                <!-- Score Dial Compacto (Stitch Badge) -->
+                <div class="flex flex-col items-center flex-shrink-0">
+                  <div class="w-10 h-10 rounded-xl flex flex-col items-center justify-center font-black text-xs shadow-md ${wc.score >= 85 ? 'bg-gradient-to-tr from-emerald-600 to-emerald-400 text-slate-950 shadow-emerald-500/20' : (wc.score >= 70 ? 'bg-gradient-to-tr from-amber-600 to-amber-400 text-slate-950 shadow-amber-500/20' : 'bg-gradient-to-tr from-rose-600 to-rose-400 text-white shadow-rose-500/20')}">
+                    <span>${wc.score}</span>
                   </div>
-                  <span class="text-[10px] text-slate-400 font-bold mt-1">⭐ ${(wc.score / 20).toFixed(1)}</span>
                 </div>
               </div>
 
               <!-- Línea 2: Estado + Acceso + Equipamiento Clave -->
-              <div class="flex items-center justify-between gap-2 flex-wrap text-xs pt-1 border-t border-slate-800/80">
+              <div class="flex items-center justify-between gap-2 flex-wrap text-xs pt-1.5 border-t border-white/5">
                 <div class="flex items-center gap-2 flex-wrap">
-                  <span class="font-black ${semantic.color === 'green' ? 'text-emerald-400' : (semantic.color === 'red' ? 'text-rose-400' : 'text-amber-400')}">
+                  <span class="font-extrabold ${semantic.color === 'green' ? 'text-emerald-400' : (semantic.color === 'red' ? 'text-rose-400' : 'text-amber-400')}">
                     ${semantic.label}
                   </span>
                   <span>·</span>
@@ -174,14 +174,14 @@ export function renderNearView(container) {
 
                 <!-- Fiabilidad + Última Verificación -->
                 <div class="flex items-center gap-1.5 text-[11px] text-slate-400 font-semibold">
-                  <span>🛡️ ${wc.confidence}% fiable</span>
+                  <span>🛡️ ${wc.confidence}%</span>
                   <span>·</span>
                   <span>${formatRelativeTime(wc.last_verified_at)}</span>
                 </div>
               </div>
 
               <!-- Línea 3: Métrica Volvería -->
-              <div class="flex items-center justify-between text-[11px] bg-slate-950/60 rounded-xl px-3 py-1.5 border border-slate-800/50">
+              <div class="flex items-center justify-between text-[11px] bg-slate-950/60 rounded-xl px-3 py-1.5 border border-white/5">
                 <span class="text-emerald-400 font-black">👍 ${wouldRet.sentence}</span>
                 <span class="text-slate-400 font-bold">Ver detalles →</span>
               </div>

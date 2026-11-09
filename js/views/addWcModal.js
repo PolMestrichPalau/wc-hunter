@@ -174,7 +174,7 @@ export function renderAddWcModal(container) {
 
           <button
             type="submit"
-            class="w-full bg-gradient-to-r from-amber-500 to-yellow-400 hover:from-amber-600 hover:to-yellow-500 active:scale-95 text-slate-950 font-black text-sm py-3.5 rounded-2xl shadow-xl transition mt-2 flex items-center justify-center gap-2"
+            class="tactile-amber-btn w-full bg-gradient-to-r from-amber-500 to-yellow-400 hover:from-amber-400 text-slate-950 font-black text-sm py-3.5 rounded-2xl shadow-xl transition mt-2 flex items-center justify-center gap-2"
           >
             <span>🏆</span> <span>Publicar Descubrimiento (+100 XP)</span>
           </button>

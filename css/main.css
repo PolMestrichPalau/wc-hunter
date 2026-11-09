@@ -1,18 +1,100 @@
-/* WC HUNTER V2.0 — Estilos Adaptativos Desktop & Mobile */
+/* WC HUNTER — Estilos Adaptativos Desktop & Mobile (Stitch Design System) */
 
 @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap');
 
 :root {
-  --bg-app: #080c14;
-  --bg-sidebar: #0f172a;
-  --bg-surface: #111827;
-  --bg-surface-hover: #1f2937;
+  --bg-app: #0b1326;
+  --bg-sidebar: #060e20;
+  --bg-surface: #131b2e;
+  --bg-surface-high: #222a3d;
+  --bg-surface-hover: #1a243b;
   --border-subtle: rgba(255, 255, 255, 0.08);
   --border-card: rgba(255, 255, 255, 0.12);
   --accent-gold: #f59e0b;
   --accent-clean: #10b981;
+  --accent-cyan: #06b6d4;
   --accent-panic: #ef4444;
   --accent-secret: #a855f7;
+}
+
+/* Chips y Filtros Rápidos (Stitch Specification) */
+.map-filter-chip {
+  padding: 6px 12px;
+  background: rgba(19, 27, 46, 0.85);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 9999px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #94a3b8;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.map-filter-chip:hover {
+  background: rgba(34, 42, 61, 0.95);
+  color: #ffffff;
+}
+
+.map-filter-chip.active {
+  background: #10b981;
+  border-color: #10b981;
+  color: #060e20;
+  font-weight: 800;
+  box-shadow: 0 0 12px rgba(16, 185, 129, 0.4);
+}
+
+/* Duolingo-inspired Tactile 3D Buttons (Stitch Specification) */
+.tactile-btn {
+  box-shadow: 0 4px 0 #047857;
+  transition: transform 0.1s ease, box-shadow 0.1s ease;
+}
+.tactile-btn:active {
+  transform: translateY(3px);
+  box-shadow: 0 1px 0 #047857;
+}
+
+.tactile-panic-btn {
+  box-shadow: 0 4px 0 #991b1b;
+  transition: transform 0.1s ease, box-shadow 0.1s ease;
+}
+.tactile-panic-btn:active {
+  transform: translateY(3px);
+  box-shadow: 0 1px 0 #991b1b;
+}
+
+.tactile-amber-btn {
+  box-shadow: 0 4px 0 #b45309;
+  transition: transform 0.1s ease, box-shadow 0.1s ease;
+}
+.tactile-amber-btn:active {
+  transform: translateY(3px);
+  box-shadow: 0 1px 0 #b45309;
+}
+
+.tactile-cyan-btn {
+  box-shadow: 0 4px 0 #0891b2;
+  transition: transform 0.1s ease, box-shadow 0.1s ease;
+}
+.tactile-cyan-btn:active {
+  transform: translateY(3px);
+  box-shadow: 0 1px 0 #0891b2;
+}
+
+/* Radar Wave Keyframes for Pins and Emergency Mode */
+@keyframes radarPing {
+  0% { transform: scale(0.8); opacity: 0.9; }
+  100% { transform: scale(2.4); opacity: 0; }
+}
+
+.animate-radar-wave {
+  animation: radarPing 2.2s cubic-bezier(0, 0.2, 0.8, 1) infinite;
+}
+
+/* Dark Map Tile Layer Tuning for Leaflet */
+.leaflet-tile-pane {
+  filter: brightness(0.9) contrast(1.1);
 }
 
 * {

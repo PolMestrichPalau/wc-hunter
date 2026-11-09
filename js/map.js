@@ -53,20 +53,31 @@ class MapManager {
 
       window.L.control.zoom({ position: 'bottomright' }).addTo(this.map);
 
-      // OpenStreetMap oficial 100% gratuito, sin necesidad de API key
-      window.L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a>',
+      // CartoDB Dark Matter — Mapa urbano oscuro táctico (Stitch Specification)
+      window.L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a> &copy; <a href="https://carto.com/" target="_blank">CARTO</a>',
+        subdomains: 'abcd',
         maxZoom: 19
       }).addTo(this.map);
 
       this.markersLayer = window.L.layerGroup().addTo(this.map);
 
-      // Marcador del usuario (pulsador azul minimalista)
+      // Marcador del usuario: Radar táctico con badge 'TÚ' (Stitch Screen 1)
       const userIcon = window.L.divIcon({
-        className: 'user-marker-icon',
-        html: `<div class="w-5 h-5 bg-blue-500 rounded-full border-2 border-white shadow-lg flex items-center justify-center animate-pulse"><div class="w-1.5 h-1.5 bg-white rounded-full"></div></div>`,
-        iconSize: [20, 20],
-        iconAnchor: [10, 10]
+        className: 'user-radar-icon',
+        html: `
+          <div class="relative flex flex-col items-center pointer-events-none" style="transform: translate(-50%, -50%);">
+            <div class="absolute w-10 h-10 rounded-full bg-emerald-500/20 animate-ping"></div>
+            <div class="w-6 h-6 rounded-full bg-slate-900 border-2 border-emerald-400 flex items-center justify-center shadow-[0_0_12px_#10b981]">
+              <div class="w-2.5 h-2.5 rounded-full bg-emerald-400"></div>
+            </div>
+            <span class="mt-1 px-1.5 py-0.2 rounded-full bg-slate-900/90 border border-emerald-500/60 text-[9px] font-black text-emerald-400 tracking-wider shadow">
+              TÚ
+            </span>
+          </div>
+        `,
+        iconSize: [40, 40],
+        iconAnchor: [0, 0]
       });
       this.userMarker = window.L.marker([lat, lng], { icon: userIcon }).addTo(this.map);
 
@@ -96,48 +107,57 @@ class MapManager {
     this.markersLayer.clearLayers();
 
     const wcs = store.getFilteredWCs();
+    // Identificar el WC con mejor puntuación para destacar su radar
+    const maxScore = Math.max(...wcs.map(w => w.score || 0), 0);
 
     wcs.forEach(wc => {
       const semantic = getSemanticStatus(wc);
+      const isTopWC = wc.score >= 90 && wc.score === maxScore;
       
-      let dotColor = '#10b981'; // verde
-      let bgColor = '#064e3b';
-      let textColor = '#a7f3d0';
+      let badgeColor = '#10b981'; // esmeralda
+      let bgStyle = 'linear-gradient(135deg, #059669, #10b981)';
+      let shadowGlow = 'rgba(16, 185, 129, 0.4)';
 
-      if (semantic.color === 'yellow') {
-        dotColor = '#f59e0b';
-        bgColor = '#451a03';
-        textColor = '#fde68a';
-      } else if (semantic.color === 'red') {
-        dotColor = '#ef4444';
-        bgColor = '#450a0a';
-        textColor = '#fecaca';
-      } else if (semantic.color === 'gray') {
-        dotColor = '#94a3b8';
-        bgColor = '#1e293b';
-        textColor = '#cbd5e1';
+      if (wc.score < 70 || semantic.color === 'red') {
+        badgeColor = '#ef4444';
+        bgStyle = 'linear-gradient(135deg, #b91c1c, #ef4444)';
+        shadowGlow = 'rgba(239, 68, 68, 0.4)';
+      } else if (wc.score < 85 || semantic.color === 'yellow') {
+        badgeColor = '#f59e0b';
+        bgStyle = 'linear-gradient(135deg, #d97706, #f59e0b)';
+        shadowGlow = 'rgba(245, 158, 11, 0.4)';
       }
 
-      // Si es secreto / legendario, badge especial
+      if (wc.is_secret) {
+        badgeColor = '#a855f7';
+        bgStyle = 'linear-gradient(135deg, #7e22ce, #a855f7)';
+        shadowGlow = 'rgba(168, 85, 247, 0.4)';
+      }
+
       const isLegendary = wc.rarity === 'LEGENDARY' || wc.rarity === 'MYTHIC';
-      const labelText = isLegendary ? '🔐' : `${wc.score}`;
+      const labelText = wc.is_secret ? '🔐' : `${wc.score}`;
 
       const markerHtml = `
-        <div class="minimal-wc-marker" style="
-          background: ${bgColor};
-          border: 2px solid ${dotColor};
-          color: ${textColor};
-        ">
-          <span style="display:inline-block; width:8px; height:8px; border-radius:50%; background:${dotColor};"></span>
-          <span>${labelText}</span>
+        <div class="relative cursor-pointer group select-none" style="transform: translate(-50%, -50%);">
+          ${isTopWC ? `
+            <div class="absolute inset-0 -m-2 rounded-full bg-emerald-500/30 animate-radar-wave pointer-events-none"></div>
+          ` : ''}
+          <div class="flex items-center bg-slate-900/95 hover:bg-slate-800 border-2 rounded-full pl-1 pr-2.5 py-1 shadow-lg transition-transform active:scale-95" style="border-color: ${badgeColor}; box-shadow: 0 4px 14px ${shadowGlow};">
+            <div class="w-6 h-6 rounded-full flex items-center justify-center font-black text-[11px] text-slate-950 shadow-inner" style="background: ${bgStyle};">
+              ${labelText}
+            </div>
+            <span class="ml-1.5 text-[11px] font-extrabold text-white max-w-[85px] truncate">
+              ${wc.name}
+            </span>
+          </div>
         </div>
       `;
 
       const icon = window.L.divIcon({
-        className: 'leaflet-minimal-marker',
+        className: 'leaflet-tactical-marker',
         html: markerHtml,
-        iconSize: [52, 28],
-        iconAnchor: [26, 14]
+        iconSize: [120, 36],
+        iconAnchor: [0, 0]
       });
 
       const marker = window.L.marker([wc.latitude, wc.longitude], { icon });

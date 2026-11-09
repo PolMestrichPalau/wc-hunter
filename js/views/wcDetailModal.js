@@ -63,97 +63,124 @@ export function renderWcDetailModal(container) {
             </span>
           </div>
 
-          <!-- 2. LOS 4 PILARES: CALIDAD, ESTADO, FIABILIDAD Y VOLVERÍA -->
-          <div class="grid grid-cols-2 gap-3">
+          <!-- 2. LOS 4 PILARES DE HIGIENE & CALIDAD (Stitch Screen 2 Design) -->
+          <div class="bg-surface-container/90 border border-white/10 rounded-3xl p-5 shadow-xl flex flex-col gap-4">
             
-            <!-- Pilar 1: CALIDAD (WC SCORE) -->
-            <div class="bg-slate-800/80 border border-slate-700/80 rounded-2xl p-4 flex flex-col items-center text-center">
-              <span class="text-[10px] font-black uppercase text-slate-400 tracking-wider">CALIDAD WC SCORE</span>
-              <div class="text-4xl font-black ${wc.score >= 85 ? 'text-emerald-400' : (wc.score >= 70 ? 'text-amber-400' : 'text-rose-400')} my-1.5">
-                ${wc.score}<span class="text-xs text-slate-500 font-normal">/100</span>
+            <!-- Hero de Puntuación con Anillo Circular -->
+            <div class="flex items-center justify-between border-b border-white/5 pb-4">
+              <div class="flex items-center gap-4">
+                <div class="w-16 h-16 rounded-2xl flex flex-col items-center justify-center font-black text-2xl shadow-xl ${wc.score >= 85 ? 'bg-gradient-to-tr from-emerald-600 to-emerald-400 text-slate-950 shadow-emerald-500/20' : (wc.score >= 70 ? 'bg-gradient-to-tr from-amber-600 to-amber-400 text-slate-950 shadow-amber-500/20' : 'bg-gradient-to-tr from-rose-600 to-rose-400 text-white shadow-rose-500/20')}">
+                  <span>${wc.score}</span>
+                  <span class="text-[9px] font-bold uppercase tracking-wider opacity-80 leading-none">PUNTOS</span>
+                </div>
+                <div>
+                  <h3 class="text-base font-extrabold text-white">${getScoreRatingText(wc.score)}</h3>
+                  <p class="text-xs text-slate-400 font-semibold mt-0.5">
+                    Verificado ${formatRelativeTime(wc.last_verified_at)}
+                  </p>
+                  <span class="text-[11px] font-bold text-emerald-400 mt-0.5 block">
+                    👍 ${wouldRet.percent}% de cazadores volvería
+                  </span>
+                </div>
               </div>
-              <span class="text-xs font-black text-white tracking-wide uppercase">
-                ${getScoreRatingText(wc.score)}
-              </span>
-            </div>
-
-            <!-- Pilar 2: ESTADO ACTUAL -->
-            <div class="bg-slate-800/80 border border-slate-700/80 rounded-2xl p-4 flex flex-col items-center text-center">
-              <span class="text-[10px] font-black uppercase text-slate-400 tracking-wider">ESTADO ACTUAL</span>
-              <div class="my-auto flex flex-col items-center">
-                <span class="text-base font-black ${semantic.color === 'green' ? 'text-emerald-400' : (semantic.color === 'red' ? 'text-rose-400' : 'text-amber-400')} mt-2">
-                  ${semantic.label}
+              <div class="flex flex-col items-end">
+                <span class="text-xs font-black text-cyan-400 bg-cyan-950/60 px-2.5 py-1 rounded-xl border border-cyan-500/30">
+                  🛡️ ${wc.confidence}% conf.
                 </span>
-                <span class="text-xs text-slate-400 font-semibold mt-1">
-                  Verificado ${formatRelativeTime(wc.last_verified_at)}
+                <span class="text-[10px] text-slate-400 font-bold mt-1">
+                  ${wc.verified_by_count || 14} validaciones
                 </span>
               </div>
             </div>
 
-            <!-- Pilar 3: FIABILIDAD -->
-            <div class="bg-slate-800/80 border border-slate-700/80 rounded-2xl p-4 flex flex-col items-center text-center">
-              <span class="text-[10px] font-black uppercase text-slate-400 tracking-wider">FIABILIDAD</span>
-              <div class="text-3xl font-black text-blue-400 my-1">
-                ${wc.confidence}<span class="text-xs text-slate-500 font-normal">%</span>
+            <!-- Desglose de los 4 Pilares con Barras de Progreso -->
+            <div class="flex flex-col gap-3">
+              <span class="text-[10px] font-extrabold uppercase tracking-wider text-slate-400">DESGLOSE DE LOS 4 PILARES</span>
+              
+              <!-- Pilar 1: Limpieza -->
+              <div class="flex flex-col gap-1">
+                <div class="flex justify-between text-xs font-bold">
+                  <span class="text-slate-300 flex items-center gap-1.5"><span>🧼</span> Limpieza e Higiene</span>
+                  <span class="${b.cleanliness >= 80 ? 'text-emerald-400' : 'text-amber-400'} font-extrabold">${b.cleanliness}%</span>
+                </div>
+                <div class="w-full h-2 bg-slate-950 rounded-full overflow-hidden p-0.5 border border-white/5">
+                  <div class="h-full bg-gradient-to-r from-emerald-500 to-primary rounded-full transition-all duration-500" style="width: ${b.cleanliness}%"></div>
+                </div>
               </div>
-              <span class="text-[11px] text-slate-300 font-semibold">
-                🛡️ Información verificada
+
+              <!-- Pilar 2: Privacidad -->
+              <div class="flex flex-col gap-1">
+                <div class="flex justify-between text-xs font-bold">
+                  <span class="text-slate-300 flex items-center gap-1.5"><span>🔒</span> Privacidad y Acústica</span>
+                  <span class="text-cyan-400 font-extrabold">${b.privacy}%</span>
+                </div>
+                <div class="w-full h-2 bg-slate-950 rounded-full overflow-hidden p-0.5 border border-white/5">
+                  <div class="h-full bg-gradient-to-r from-cyan-500 to-blue-400 rounded-full transition-all duration-500" style="width: ${b.privacy}%"></div>
+                </div>
+              </div>
+
+              <!-- Pilar 3: Equipamiento -->
+              <div class="flex flex-col gap-1">
+                <div class="flex justify-between text-xs font-bold">
+                  <span class="text-slate-300 flex items-center gap-1.5"><span>🧴</span> Confort y Equipamiento (Papel/Jabón)</span>
+                  <span class="text-amber-400 font-extrabold">${Math.round((b.paper + b.soap) / 2)}%</span>
+                </div>
+                <div class="w-full h-2 bg-slate-950 rounded-full overflow-hidden p-0.5 border border-white/5">
+                  <div class="h-full bg-gradient-to-r from-amber-500 to-yellow-400 rounded-full transition-all duration-500" style="width: ${Math.round((b.paper + b.soap) / 2)}%"></div>
+                </div>
+              </div>
+
+              <!-- Pilar 4: Accesibilidad -->
+              <div class="flex flex-col gap-1">
+                <div class="flex justify-between text-xs font-bold">
+                  <span class="text-slate-300 flex items-center gap-1.5"><span>♿</span> Accesibilidad Universal & Bebé</span>
+                  <span class="text-purple-400 font-extrabold">${wc.equipment.wheelchair ? '100%' : '50%'}</span>
+                </div>
+                <div class="w-full h-2 bg-slate-950 rounded-full overflow-hidden p-0.5 border border-white/5">
+                  <div class="h-full bg-gradient-to-r from-purple-500 to-pink-400 rounded-full transition-all duration-500" style="width: ${wc.equipment.wheelchair ? 100 : 50}%"></div>
+                </div>
+              </div>
+            </div>
+
+          </div>
+
+          <!-- WIDGET DE VALIDACIÓN RÁPIDA 1-TAP (Stitch Microinteractions) -->
+          <div class="bg-surface-container/90 border-2 border-emerald-500/40 rounded-3xl p-5 shadow-xl flex flex-col gap-3">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-2">
+                <span class="text-xl">⚡</span>
+                <div>
+                  <h3 class="text-sm font-extrabold text-white">Validación Rápida en 1-Tap</h3>
+                  <p class="text-[11px] text-slate-400 font-medium">Pulsa cómo lo has encontrado para ganar XP al instante</p>
+                </div>
+              </div>
+              <span class="text-xs font-black text-amber-400 bg-amber-400/10 px-2.5 py-1 rounded-xl border border-amber-400/30">
+                +15 XP
               </span>
             </div>
 
-            <!-- Pilar 4: VOLVERÍA -->
-            <div class="bg-slate-800/80 border border-slate-700/80 rounded-2xl p-4 flex flex-col items-center text-center">
-              <span class="text-[10px] font-black uppercase text-slate-400 tracking-wider">REPETICIÓN</span>
-              <div class="text-3xl font-black text-emerald-400 my-1">
-                ${wouldRet.percent}<span class="text-xs text-slate-500 font-normal">%</span>
-              </div>
-              <span class="text-[11px] text-slate-300 font-semibold">
-                👍 Volvería a usarlo
-              </span>
+            <!-- Botones Rápidos de 1 Click -->
+            <div class="grid grid-cols-3 gap-2 mt-1">
+              <button type="button" id="quick-tap-clean" class="tactile-btn bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-[11px] py-2.5 px-2 rounded-2xl flex flex-col items-center text-center gap-0.5">
+                <span class="text-base">🟢</span>
+                <span>Impecable</span>
+                <span class="text-[9px] text-emerald-200">+15 XP</span>
+              </button>
+              <button type="button" id="quick-tap-paper" class="tactile-amber-btn bg-amber-600 hover:bg-amber-500 text-white font-extrabold text-[11px] py-2.5 px-2 rounded-2xl flex flex-col items-center text-center gap-0.5">
+                <span class="text-base">🧻</span>
+                <span>Falta Papel</span>
+                <span class="text-[9px] text-amber-200">+15 XP</span>
+              </button>
+              <button type="button" id="quick-tap-closed" class="tactile-panic-btn bg-rose-600 hover:bg-rose-500 text-white font-extrabold text-[11px] py-2.5 px-2 rounded-2xl flex flex-col items-center text-center gap-0.5">
+                <span class="text-base">🔒</span>
+                <span>Cerrado</span>
+                <span class="text-[9px] text-rose-200">+20 XP</span>
+              </button>
             </div>
           </div>
 
-          <!-- Frase Humana de Repetición -->
-          <div class="bg-emerald-950/30 border border-emerald-500/30 rounded-2xl p-3 flex items-center justify-between">
-            <span class="text-xs font-black text-emerald-300 flex items-center gap-2">
-              <span class="text-base">👍</span>
-              <span>${wouldRet.sentence}</span>
-            </span>
-            <span class="text-[11px] text-slate-400 font-bold">
-              ${wouldRet.yesCount} de ${wouldRet.total} cazadores
-            </span>
-          </div>
-
-          <!-- Desglose Limpio de Calidad -->
-          <div class="bg-slate-800/60 border border-slate-700/60 rounded-2xl p-4 flex flex-col gap-2.5">
-            <h3 class="text-xs font-black text-slate-400 uppercase tracking-wider">Variables de Calidad</h3>
-
-            <div class="grid grid-cols-2 gap-2 text-xs font-bold">
-              <div class="bg-slate-900/60 p-2.5 rounded-xl border border-slate-800 flex items-center justify-between">
-                <span class="text-slate-300">🧼 Limpieza</span>
-                <span class="${b.cleanliness >= 80 ? 'text-emerald-400' : 'text-amber-400'} font-black">${b.cleanliness}/100</span>
-              </div>
-              <div class="bg-slate-900/60 p-2.5 rounded-xl border border-slate-800 flex items-center justify-between">
-                <span class="text-slate-300">👃 Olor</span>
-                <span class="${b.odor >= 80 ? 'text-emerald-400' : 'text-amber-400'} font-black">${b.odor}/100</span>
-              </div>
-              <div class="bg-slate-900/60 p-2.5 rounded-xl border border-slate-800 flex items-center justify-between">
-                <span class="text-slate-300">🧻 Papel Higiénico</span>
-                <span class="${b.paper >= 80 ? 'text-emerald-400' : 'text-rose-400'} font-black">${b.paper}/100</span>
-              </div>
-              <div class="bg-slate-900/60 p-2.5 rounded-xl border border-slate-800 flex items-center justify-between">
-                <span class="text-slate-300">🧴 Jabón y Agua</span>
-                <span class="text-slate-200 font-black">${b.soap}/100</span>
-              </div>
-              <div class="bg-slate-900/60 p-2.5 rounded-xl border border-slate-800 flex items-center justify-between col-span-2">
-                <span class="text-slate-300">🔒 Privacidad y Cerrojo</span>
-                <span class="text-slate-200 font-black">${b.privacy}/100</span>
-              </div>
-            </div>
-          </div>
-
-          <!-- Rareza vs Dificultad (Conceptos Separados) -->
-          <div class="bg-slate-800/60 border border-slate-700/60 rounded-2xl p-4 flex flex-col gap-2">
+          <!-- Rareza vs Dificultad -->
+          <div class="bg-surface-container/60 border border-white/5 rounded-2xl p-4 flex flex-col gap-2">
             <div class="flex items-center justify-between">
               <span class="text-xs font-black uppercase tracking-wider text-slate-400">Rareza del WC</span>
               <span class="text-xs font-black text-amber-400">${rarityInfo.rarityScore}</span>
@@ -167,12 +194,12 @@ export function renderWcDetailModal(container) {
             </div>
           </div>
 
-          <!-- WIDGET DE ACTUALIZACIÓN RÁPIDA (5 SEGUNDOS) -->
-          <div id="quick-verify-box" class="bg-gradient-to-b from-slate-800 to-slate-900 border-2 border-emerald-500/50 rounded-2xl p-4 shadow-xl flex flex-col gap-3">
+          <!-- FORMULARIO DETALLADO DE VERIFICACIÓN -->
+          <div id="quick-verify-box" class="bg-surface-container/80 border border-slate-700/80 rounded-2xl p-4 shadow-xl flex flex-col gap-3">
             <div class="flex items-center justify-between">
               <div class="flex items-center gap-2">
-                <span class="text-lg">⚡</span>
-                <h3 class="text-sm font-black text-white">¿Cómo está ahora mismo?</h3>
+                <span class="text-base">📝</span>
+                <h3 class="text-xs font-black uppercase tracking-wider text-white">Reporte Detallado</h3>
               </div>
               <span class="text-xs font-black text-amber-400 bg-amber-400/10 px-2 py-0.5 rounded-md border border-amber-400/20">
                 +15 XP
@@ -213,9 +240,9 @@ export function renderWcDetailModal(container) {
                 </div>
               </div>
 
-              <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white font-black text-xs py-3 rounded-xl shadow transition mt-1 flex items-center justify-center gap-1.5">
+              <button type="submit" class="tactile-btn w-full bg-gradient-to-r from-emerald-500 to-primary hover:from-emerald-400 text-slate-950 font-black text-xs py-3.5 rounded-2xl shadow-lg transition mt-2 flex items-center justify-center gap-1.5">
                 <span>🛡️</span>
-                <span>Confirmar Verificación (+15 XP)</span>
+                <span>Confirmar Reporte Completo (+15 XP)</span>
               </button>
             </form>
           </div>
@@ -250,6 +277,31 @@ export function renderWcDetailModal(container) {
   const closeBtn = container.querySelector('#close-detail-modal-btn');
   if (closeBtn) {
     closeBtn.addEventListener('click', () => store.closeWcDetail());
+  }
+
+  // Attach 1-Tap quick verification listeners (Stitch UI)
+  const quickClean = container.querySelector('#quick-tap-clean');
+  if (quickClean) {
+    quickClean.addEventListener('click', () => {
+      store.verifyWC(wc.id, { status: 'open', has_paper: true, has_soap: true, cleanliness: 'clean' });
+      renderWcDetailModal(container);
+    });
+  }
+
+  const quickPaper = container.querySelector('#quick-tap-paper');
+  if (quickPaper) {
+    quickPaper.addEventListener('click', () => {
+      store.verifyWC(wc.id, { status: 'open', has_paper: false, has_soap: true, cleanliness: 'normal' });
+      renderWcDetailModal(container);
+    });
+  }
+
+  const quickClosed = container.querySelector('#quick-tap-closed');
+  if (quickClosed) {
+    quickClosed.addEventListener('click', () => {
+      store.verifyWC(wc.id, { status: 'closed', has_paper: false, has_soap: false, cleanliness: 'dirty' });
+      renderWcDetailModal(container);
+    });
   }
 
   const form = container.querySelector('#v2-verify-form');

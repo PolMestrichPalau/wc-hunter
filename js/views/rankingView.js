@@ -43,11 +43,11 @@ export function renderRankingView(container) {
         </div>
 
         <!-- Switch WCs / Hunters -->
-        <div class="flex p-1 bg-slate-950 rounded-2xl border border-slate-800 max-w-md">
-          <button id="rank-tab-wcs" class="flex-1 py-2 text-xs font-black rounded-xl transition ${activeRankingTab === 'wcs' ? 'bg-amber-500 text-slate-950 shadow' : 'text-slate-400 hover:text-white'}">
+        <div class="flex p-1 bg-surface-container-high rounded-2xl border border-white/10 max-w-md">
+          <button id="rank-tab-wcs" class="flex-1 py-2 text-xs font-black rounded-xl transition ${activeRankingTab === 'wcs' ? 'bg-gradient-to-r from-emerald-500 to-primary text-slate-950 shadow-md' : 'text-slate-400 hover:text-white'}">
             🚽 Top WC
           </button>
-          <button id="rank-tab-hunters" class="flex-1 py-2 text-xs font-black rounded-xl transition ${activeRankingTab === 'hunters' ? 'bg-amber-500 text-slate-950 shadow' : 'text-slate-400 hover:text-white'}">
+          <button id="rank-tab-hunters" class="flex-1 py-2 text-xs font-black rounded-xl transition ${activeRankingTab === 'hunters' ? 'bg-gradient-to-r from-emerald-500 to-primary text-slate-950 shadow-md' : 'text-slate-400 hover:text-white'}">
             🌍 Top Hunters
           </button>
         </div>
@@ -70,16 +70,16 @@ export function renderRankingView(container) {
           sortedWcs.map((wc, idx) => {
             const medal = idx === 0 ? '🥇' : (idx === 1 ? '🥈' : (idx === 2 ? '🥉' : `#${idx + 1}`));
             return `
-              <div class="bg-slate-900/90 border border-slate-800 hover:border-slate-700 rounded-2xl p-4 flex items-center justify-between gap-3 shadow transition cursor-pointer rank-wc-card" data-wc-id="${wc.id}">
+              <div class="bg-surface-container/90 border border-white/10 hover:border-emerald-500/40 rounded-3xl p-4 flex items-center justify-between gap-3 shadow-lg transition cursor-pointer rank-wc-card active:scale-[0.99]" data-wc-id="${wc.id}">
                 <div class="flex items-center gap-3.5 min-w-0">
                   <span class="text-xl font-black text-amber-400 w-8 text-center flex-shrink-0">${medal}</span>
                   <div class="min-w-0">
-                    <div class="flex items-center gap-1.5 mb-1">
+                    <div class="flex items-center gap-1.5 mb-1 flex-wrap">
                       <span class="rarity-pill ${wc.rarity}">${wc.rarity}</span>
-                      ${wc.is_secret ? `<span class="text-[10px] font-black bg-purple-950 text-purple-300 px-1.5 py-0.5 rounded">🔐</span>` : ''}
+                      ${wc.is_secret ? `<span class="text-[10px] font-black bg-purple-950 text-purple-300 px-1.5 py-0.5 rounded-full">🔐</span>` : ''}
                       <span class="text-xs text-slate-400 font-semibold truncate">${wc.city}</span>
                     </div>
-                    <h3 class="text-sm font-black text-white truncate">${wc.name}</h3>
+                    <h3 class="text-sm font-extrabold text-white truncate">${wc.name}</h3>
                     <p class="text-xs text-amber-300/90 font-medium truncate mt-0.5">${wc.access_label}</p>
                   </div>
                 </div>

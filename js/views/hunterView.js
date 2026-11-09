@@ -33,16 +33,16 @@ export function renderHunterView(container) {
       <div class="px-4 sm:px-6 py-5 flex flex-col gap-5 max-w-4xl mx-auto w-full">
         
         <!-- 1. TU PROGRESO (Nivel + XP + Racha) -->
-        <div class="bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 border border-slate-700/80 rounded-3xl p-5 shadow-xl flex flex-col gap-3">
+        <div class="bg-surface-container/95 border border-white/10 rounded-3xl p-5 shadow-xl flex flex-col gap-3">
           <div class="flex items-center justify-between">
             <div class="flex items-center gap-3">
-              <div class="w-14 h-14 rounded-2xl bg-amber-500/20 border-2 border-amber-500 flex items-center justify-center text-3xl shadow-lg shadow-amber-500/20">
+              <div class="w-14 h-14 rounded-2xl bg-gradient-to-tr from-emerald-500/20 to-secondary/20 border-2 border-emerald-400 flex items-center justify-center text-3xl shadow-lg shadow-emerald-500/20">
                 ${user.avatar}
               </div>
               <div>
                 <div class="flex items-center gap-2">
                   <h2 class="text-lg font-black text-white">NIVEL ${levelInfo.level}</h2>
-                  <span class="text-xs font-black text-amber-400 bg-amber-950/60 px-2 py-0.5 rounded border border-amber-500/40">
+                  <span class="text-xs font-black text-emerald-400 bg-emerald-950/60 px-2 py-0.5 rounded-lg border border-emerald-500/40">
                     ${levelInfo.rank}
                   </span>
                 </div>
@@ -62,27 +62,27 @@ export function renderHunterView(container) {
           <div class="mt-2">
             <div class="flex justify-between text-xs font-bold mb-1.5">
               <span class="text-slate-400">Progreso al siguiente nivel</span>
-              <span class="text-amber-400 font-black">${user.xp.toLocaleString()} / ${levelInfo.nextBase.toLocaleString()} XP</span>
+              <span class="text-emerald-400 font-black">${user.xp.toLocaleString()} / ${levelInfo.nextBase.toLocaleString()} XP</span>
             </div>
-            <div class="w-full h-3.5 bg-slate-950 rounded-full overflow-hidden p-0.5 border border-slate-700">
-              <div class="h-full bg-gradient-to-r from-amber-500 to-yellow-300 rounded-full transition-all duration-500" style="width: ${levelInfo.percent}%"></div>
+            <div class="w-full h-3.5 bg-slate-950 rounded-full overflow-hidden p-0.5 border border-white/10">
+              <div class="h-full bg-gradient-to-r from-emerald-500 to-primary rounded-full transition-all duration-500" style="width: ${levelInfo.percent}%"></div>
             </div>
           </div>
         </div>
 
         <!-- 2. 🏆 PRÓXIMOS LOGROS EN PROGRESO -->
-        <div class="bg-slate-900/80 border border-slate-800 rounded-3xl p-5 flex flex-col gap-3 shadow-md">
+        <div class="bg-surface-container/90 border border-white/10 rounded-3xl p-5 flex flex-col gap-3 shadow-md">
           <div class="flex items-center justify-between">
             <h3 class="text-xs font-black uppercase tracking-wider text-slate-300 flex items-center gap-2">
               <span>🏆</span>
-              <span>Próximos Logros</span>
+              <span>Próximos Logros & Misiones</span>
             </h3>
             <span class="text-xs text-amber-400 font-bold">En curso</span>
           </div>
 
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
             ${UPCOMING_ACHIEVEMENTS.map(ach => `
-              <div class="bg-slate-800/80 border ${ach.completed ? 'border-amber-500/60 bg-amber-950/20' : 'border-slate-700/60'} rounded-2xl p-3 flex items-center justify-between gap-2 shadow-sm">
+              <div class="bg-surface-container-high/70 border ${ach.completed ? 'border-amber-500/60 bg-amber-950/20' : 'border-white/5'} rounded-2xl p-3 flex items-center justify-between gap-2 shadow-sm">
                 <div class="flex items-center gap-2.5 min-w-0">
                   <span class="text-2xl">${ach.icon}</span>
                   <div class="min-w-0">
@@ -93,7 +93,7 @@ export function renderHunterView(container) {
                   </div>
                 </div>
                 ${ach.completed ? `
-                  <button class="bg-amber-500 hover:bg-amber-400 text-slate-950 text-[11px] font-black px-2.5 py-1 rounded-xl shadow transition claim-ach-btn" data-ach-id="${ach.id}">
+                  <button class="tactile-amber-btn bg-gradient-to-r from-amber-500 to-yellow-400 hover:from-amber-400 text-slate-950 text-[11px] font-black px-3 py-1.5 rounded-xl shadow transition claim-ach-btn" data-ach-id="${ach.id}">
                     ¡Reclamar!
                   </button>
                 ` : `
