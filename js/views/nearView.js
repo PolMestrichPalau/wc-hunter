@@ -10,6 +10,13 @@ export function renderNearView(container) {
   const uLoc = store.userLocation;
   const currentIntent = store.intentFilter || 'any';
 
+  // Modo comunidad: trae del servidor los baños alrededor y repinta solo si hay novedades
+  if (store.remote) {
+    store.loadAround(uLoc.lat, uLoc.lng, 3000).then(changed => {
+      if (changed && store.currentTab === 'near') renderNearView(container);
+    });
+  }
+
   // Obtener WCs filtrados y calcular distancias
   const allWcs = store.wcs.map(wc => {
     const dist = calculateDistanceMeters(uLoc.lat, uLoc.lng, wc.latitude, wc.longitude);
@@ -151,8 +158,8 @@ export function renderNearView(container) {
 
                 <!-- Score Dial Compacto (Stitch Badge) -->
                 <div class="flex flex-col items-center flex-shrink-0">
-                  <div class="w-10 h-10 rounded-xl flex flex-col items-center justify-center font-black text-xs shadow-md ${wc.score >= 85 ? 'bg-gradient-to-tr from-emerald-600 to-emerald-400 text-slate-950 shadow-emerald-500/20' : (wc.score >= 70 ? 'bg-gradient-to-tr from-amber-600 to-amber-400 text-slate-950 shadow-amber-500/20' : 'bg-gradient-to-tr from-rose-600 to-rose-400 text-white shadow-rose-500/20')}">
-                    <span>${wc.score}</span>
+                  <div class="w-10 h-10 rounded-xl flex flex-col items-center justify-center font-black text-xs shadow-md ${wc.unrated ? 'bg-slate-700 text-slate-200' : (wc.score >= 85 ? 'bg-gradient-to-tr from-emerald-600 to-emerald-400 text-slate-950 shadow-emerald-500/20' : (wc.score >= 70 ? 'bg-gradient-to-tr from-amber-600 to-amber-400 text-slate-950 shadow-amber-500/20' : 'bg-gradient-to-tr from-rose-600 to-rose-400 text-white shadow-rose-500/20'))}">
+                    <span>${wc.unrated ? '?' : esc(wc.score)}</span>
                   </div>
                 </div>
               </div>
@@ -175,7 +182,7 @@ export function renderNearView(container) {
 
                 <!-- Fiabilidad + Última Verificación -->
                 <div class="flex items-center gap-1.5 text-[11px] text-slate-400 font-semibold">
-                  <span>🛡️ ${wc.confidence}%</span>
+                  <span>${wc.unrated ? '❔ sin valorar' : `🛡️ ${esc(wc.confidence)}%`}</span>
                   <span>·</span>
                   <span>${formatRelativeTime(wc.last_verified_at)}</span>
                 </div>

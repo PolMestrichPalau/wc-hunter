@@ -9,6 +9,8 @@ $requiredFiles = @(
     "index.html", "manifest.json", "sw.js", "serve.ps1", "css\main.css",
     "assets\icons\icon-192.png", "assets\icons\icon-512.png",
     "js\app.js", "js\state.js", "js\algorithms.js", "js\map.js", "js\geo.js", "js\utils.js", "js\seedData.js",
+    "js\config.js", "js\backend.js", "js\views\checkinModal.js",
+    "supabase\schema.sql", "supabase\storage.sql", "scripts\import-osm.mjs",
     "js\engines\wcEngine.js", "js\engines\gameEngine.js", "js\engines\userEngine.js",
     "js\views\mapView.js", "js\views\nearView.js", "js\views\rankingView.js", "js\views\hunterView.js",
     "js\views\profileView.js", "js\views\wcDetailModal.js", "js\views\addWcModal.js"
@@ -41,6 +43,14 @@ if (-not $node) {
     Write-Host "  [OK] sintaxis revisada" -ForegroundColor Green
     node (Join-Path $basePath "tests\logic.test.mjs")
     if ($LASTEXITCODE -ne 0) { $failed = $true }
+
+    Write-Host "`n=== 4. ESQUEMA SQL (Postgres real via PGlite) ===" -ForegroundColor Cyan
+    if (Test-Path (Join-Path $basePath "node_modules\@electric-sql\pglite")) {
+        node (Join-Path $basePath "tests\sql.test.mjs")
+        if ($LASTEXITCODE -ne 0) { $failed = $true }
+    } else {
+        Write-Host "  [AVISO] Ejecuta 'npm install' para activar las pruebas SQL." -ForegroundColor Yellow
+    }
 }
 
 if ($failed) {

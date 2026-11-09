@@ -11,12 +11,14 @@ import { renderHunterView } from './views/hunterView.js';
 import { renderProfileView } from './views/profileView.js';
 import { renderWcDetailModal } from './views/wcDetailModal.js';
 import { renderAddWcModal } from './views/addWcModal.js';
+import { renderCheckinModal } from './views/checkinModal.js';
 
 class App {
   constructor() {
     this.viewContainer = document.getElementById('view-container');
     this.modalContainer = document.getElementById('modal-container');
     this.addModalContainer = document.getElementById('add-modal-container');
+    this.checkinContainer = document.getElementById('checkin-modal-container');
     this.toastContainer = document.getElementById('toast-container');
     this.navButtons = document.querySelectorAll('.nav-tab-btn, .sidebar-link');
 
@@ -87,7 +89,7 @@ class App {
     const sidebarAddBtn = document.getElementById('sidebar-add-wc-btn');
     if (sidebarAddBtn) {
       sidebarAddBtn.addEventListener('click', () => {
-        store.openAddModal();
+        store.openCheckin();
       });
     }
 
@@ -101,7 +103,8 @@ class App {
     // Accesibilidad: Esc cierra el modal abierto
     document.addEventListener('keydown', (e) => {
       if (e.key !== 'Escape') return;
-      if (store.isAddModalOpen) store.closeAddModal();
+      if (store.checkin) store.closeCheckin();
+      else if (store.isAddModalOpen) store.closeAddModal();
       else if (store.selectedWc) store.closeWcDetail();
     });
   }
@@ -127,6 +130,14 @@ class App {
         this.refreshCurrentView(); // los datos pudieron cambiar mientras la ficha estaba abierta
       } else if (event === 'WC_VERIFIED') {
         renderWcDetailModal(this.modalContainer);
+        if (store.currentTab === 'map') mapManager.renderMarkers();
+      } else if (event === 'CHECKIN_OPEN' || event === 'CHECKIN_CLOSE') {
+        renderCheckinModal(this.checkinContainer);
+        if (event === 'CHECKIN_CLOSE') this.refreshCurrentView();
+      } else if (event === 'REMOTE_READY' || event === 'REMOTE_FAILED') {
+        this.updateSidebarUserCard();
+        this.renderCurrentView();
+      } else if (event === 'WCS_LOADED') {
         if (store.currentTab === 'map') mapManager.renderMarkers();
       } else if (event === 'ADD_MODAL_OPEN' || event === 'ADD_MODAL_CLOSE') {
         renderAddWcModal(this.addModalContainer);
@@ -223,7 +234,8 @@ function bootApp() {
   if (window.wcHunterApp) return;
   try {
     window.wcHunterApp = new App();
-    console.log("✅ WC HUNTER V2.0 iniciado correctamente.");
+    store.connect(); // modo comunidad (si hay Supabase configurado); no bloquea el arranque
+    console.log("✅ WC HUNTER iniciado correctamente.");
   } catch (err) {
     console.error("❌ Error iniciando WC HUNTER:", err);
     const container = document.getElementById('view-container');

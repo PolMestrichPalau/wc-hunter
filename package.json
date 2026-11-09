@@ -1,0 +1,12 @@
+{
+  "name": "wc-hunter",
+  "private": true,
+  "description": "WC Hunter - web estatica (GitHub Pages). Este package.json solo sirve para las pruebas.",
+  "type": "module",
+  "scripts": {
+    "test": "node tests/logic.test.mjs && node tests/sql.test.mjs"
+  },
+  "devDependencies": {
+    "@electric-sql/pglite": "0.2.17"
+  }
+}

@@ -5,6 +5,7 @@ import { store } from '../state.js';
 import { calculateLevel } from '../engines/gameEngine.js';
 import { computeUserRecords, generateUserNickname } from '../engines/userEngine.js';
 import { esc } from '../utils.js';
+import { backend, describeError } from '../backend.js';
 
 export function renderProfileView(container) {
   const user = store.user;
@@ -27,6 +28,7 @@ export function renderProfileView(container) {
         </div>
 
         <h1 class="text-xl sm:text-2xl font-black text-white">${esc(user.username)}</h1>
+        ${store.remote ? `<button id="rename-btn" class="text-[11px] font-bold text-slate-400 hover:text-amber-300 mt-0.5">✏️ Cambiar nombre</button>` : ''}
         <p class="text-xs text-amber-400 font-extrabold mt-0.5 tracking-wide">${esc(user.title)}</p>
         <span class="text-[11px] text-slate-400 italic mt-1">"${esc(autoNick)}"</span>
 
@@ -187,6 +189,20 @@ export function renderProfileView(container) {
       </div>
     </div>
   `;
+
+  // Modo comunidad: cambiar nombre público (validado y único en el servidor)
+  container.querySelector('#rename-btn')?.addEventListener('click', async () => {
+    const wanted = window.prompt('Tu nombre público (3-24 letras, números, _ . -):', user.username);
+    if (!wanted || wanted === user.username) return;
+    try {
+      store.applyRemoteProfile(await backend.setProfile({ username: wanted }));
+      store.notify('USER_UPDATED', store.user);
+      store.showToast('✏️ Nombre actualizado', 'info');
+      renderProfileView(container);
+    } catch (e) {
+      store.showToast(describeError(e).message, 'info');
+    }
+  });
 
   // Attach event listeners for title pick
   const titleBtns = container.querySelectorAll('.title-pick-btn');

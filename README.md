@@ -22,6 +22,15 @@
 
 ---
 
+## 🌍 Comunidad (v5.1)
+
+* **Check-in en 10 segundos:** 📍 *Estoy aquí* → GPS → baño más cercano → 1 toque (👑 / 😐 / 🤢) → foto opcional → recompensa.
+* **Backend compartido (Supabase):** perfiles anónimos, baños, check-ins y fotos de todos los usuarios. Si `js/config.js` está vacío la app funciona en modo local (demo). Guía: [`supabase/README.md`](supabase/README.md).
+* **XP calculado en el servidor** con límites antifraude (distancia ≤ 150 m, cooldown, topes diarios).
+* **Mapa sembrado con OpenStreetMap:** `scripts/import-osm.mjs` genera el SQL de baños de cualquier ciudad. Los baños sin valorar salen como `?` ("¡sé el primero!").
+
+---
+
 ## 🛡️ Calidad y antifraude (v5.0)
 
 * Todo texto introducido por usuarios se escapa antes de pintarse (`js/utils.js`), sin XSS.

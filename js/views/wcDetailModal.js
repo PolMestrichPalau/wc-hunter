@@ -6,6 +6,7 @@ import { store } from '../state.js';
 import { getSemanticStatus, formatWouldReturn, formatAccessBadge, formatRelativeTime, getScoreRatingText } from '../engines/wcEngine.js';
 import { evaluateRarity } from '../engines/gameEngine.js';
 import { esc, safeUrl } from '../utils.js';
+import { backend } from '../backend.js';
 
 export function renderWcDetailModal(container) {
   const wc = store.selectedWc;
@@ -84,22 +85,22 @@ export function renderWcDetailModal(container) {
             <div class="flex items-center justify-between border-b border-white/5 pb-4">
               <div class="flex items-center gap-4">
                 <div class="w-16 h-16 rounded-2xl flex flex-col items-center justify-center font-black text-2xl shadow-xl ${wc.score >= 85 ? 'bg-gradient-to-tr from-emerald-600 to-emerald-400 text-slate-950 shadow-emerald-500/20' : (wc.score >= 70 ? 'bg-gradient-to-tr from-amber-600 to-amber-400 text-slate-950 shadow-amber-500/20' : 'bg-gradient-to-tr from-rose-600 to-rose-400 text-white shadow-rose-500/20')}">
-                  <span>${wc.score}</span>
+                  <span>${wc.unrated ? '?' : esc(wc.score)}</span>
                   <span class="text-[9px] font-bold uppercase tracking-wider opacity-80 leading-none">PUNTOS</span>
                 </div>
                 <div>
-                  <h3 class="text-base font-extrabold text-white">${getScoreRatingText(wc.score)}</h3>
+                  <h3 class="text-base font-extrabold text-white">${wc.unrated ? 'SIN VALORAR' : getScoreRatingText(wc.score)}</h3>
                   <p class="text-xs text-slate-400 font-semibold mt-0.5">
                     Verificado ${formatRelativeTime(wc.last_verified_at)}
                   </p>
                   <span class="text-[11px] font-bold text-emerald-400 mt-0.5 block">
-                    👍 ${wouldRet.percent}% de cazadores volvería
+                    ${wouldRet.total > 0 ? `👍 ${wouldRet.percent}% de cazadores volvería` : '👍 Sin votos todavía'}
                   </span>
                 </div>
               </div>
               <div class="flex flex-col items-end">
                 <span class="text-xs font-black text-cyan-400 bg-cyan-950/60 px-2.5 py-1 rounded-xl border border-cyan-500/30">
-                  🛡️ ${wc.confidence}% conf.
+                  🛡️ ${wc.unrated ? '—' : esc(wc.confidence) + '%'} conf.
                 </span>
                 <span class="text-[10px] text-slate-400 font-bold mt-1">
                   ${verifiedCount} ${verifiedCount === 1 ? 'validación' : 'validaciones'}
@@ -108,7 +109,13 @@ export function renderWcDetailModal(container) {
             </div>
 
             <!-- Desglose de los 4 Pilares con Barras de Progreso -->
-            <div class="flex flex-col gap-3">
+            ${wc.unrated ? `
+              <div class="bg-amber-950/30 border border-amber-500/40 rounded-2xl p-4 text-center">
+                <div class="text-3xl">❔</div>
+                <p class="text-sm font-black text-amber-300 mt-1">Nadie ha valorado este baño todavía</p>
+                <p class="text-xs text-slate-300 mt-1">Haz check-in y serás <strong>el primero en documentarlo</strong> (+45 XP extra).</p>
+              </div>` : ''}
+            <div class="flex flex-col gap-3 ${wc.unrated ? 'hidden' : ''}">
               <span class="text-[10px] font-extrabold uppercase tracking-wider text-slate-400">DESGLOSE DE LOS 4 PILARES</span>
               
               <!-- Pilar 1: Limpieza -->
@@ -158,8 +165,16 @@ export function renderWcDetailModal(container) {
 
           </div>
 
-          <!-- WIDGET DE VALIDACIÓN RÁPIDA 1-TAP (Stitch Microinteractions) -->
-          <div class="bg-surface-container/90 border-2 border-emerald-500/40 rounded-3xl p-5 shadow-xl flex flex-col gap-3">
+          ${store.remote ? `
+            <!-- MODO COMUNIDAD: el check-in valida que estés en el sitio -->
+            <button type="button" id="detail-checkin-btn" class="tactile-btn w-full bg-gradient-to-r from-emerald-500 to-primary text-slate-950 font-black text-sm py-4 rounded-3xl shadow-xl flex items-center justify-center gap-2">
+              <span class="text-xl">📍</span><span>Estoy aquí · hacer check-in</span>
+            </button>
+            <div id="detail-photos" class="flex gap-2 overflow-x-auto no-scrollbar"></div>
+          ` : ''}
+
+          <!-- WIDGET DE VALIDACIÓN RÁPIDA 1-TAP (modo local) -->
+          <div class="${store.remote ? 'hidden' : ''} bg-surface-container/90 border-2 border-emerald-500/40 rounded-3xl p-5 shadow-xl flex flex-col gap-3">
             <div class="flex items-center justify-between">
               <div class="flex items-center gap-2">
                 <span class="text-xl">⚡</span>
@@ -209,7 +224,7 @@ export function renderWcDetailModal(container) {
           </div>
 
           <!-- FORMULARIO DETALLADO DE VERIFICACIÓN -->
-          <div id="quick-verify-box" class="bg-surface-container/80 border border-slate-700/80 rounded-2xl p-4 shadow-xl flex flex-col gap-3">
+          <div id="quick-verify-box" class="${store.remote ? 'hidden' : ''} bg-surface-container/80 border border-slate-700/80 rounded-2xl p-4 shadow-xl flex flex-col gap-3">
             <div class="flex items-center justify-between">
               <div class="flex items-center gap-2">
                 <span class="text-base">📝</span>
@@ -274,6 +289,7 @@ export function renderWcDetailModal(container) {
               ${verifiedCount} ${verifiedCount === 1 ? 'verificación' : 'verificaciones'}
             </span>
           </div>
+          ${store.remote ? `<button type="button" id="detail-report-btn" class="text-[11px] font-bold text-slate-500 hover:text-rose-400 self-center">🚩 Reportar este baño</button>` : ''}
 
         </div>
       </div>
@@ -282,6 +298,34 @@ export function renderWcDetailModal(container) {
 
   const scroller = container.querySelector('.detail-scroll');
   if (scroller && prevScroll) scroller.scrollTop = prevScroll;
+
+  // Modo comunidad: check-in, fotos de otros usuarios y reportar
+  if (store.remote) {
+    container.querySelector('#detail-checkin-btn')?.addEventListener('click', () => {
+      store.closeWcDetail();
+      store.openCheckin(wc.id);
+    });
+
+    backend.wcPhotos(wc.id).then(list => {
+      const box = container.querySelector('#detail-photos');
+      if (!box || store.selectedWc?.id !== wc.id || !list.length) return;
+      box.innerHTML = list.map(p => {
+        const url = safeUrl(p.url);
+        return url ? `<img src="${esc(url)}" alt="Foto de ${esc(p.username)}" loading="lazy" referrerpolicy="no-referrer" class="h-28 rounded-2xl border border-white/10 object-cover flex-shrink-0" />` : '';
+      }).join('');
+    }).catch(() => {});
+
+    container.querySelector('#detail-report-btn')?.addEventListener('click', async () => {
+      if (!window.confirm('¿Reportar este baño (no existe, es privado, contenido inapropiado…)?')) return;
+      try {
+        const res = await store.remoteReport(wc.id, 'reportado desde la ficha');
+        store.showToast(res.hidden ? '🚩 Gracias: el baño se ha ocultado para revisión.' : '🚩 Reporte enviado. ¡Gracias!', 'info');
+        if (res.hidden) store.closeWcDetail();
+      } catch (e) {
+        store.showToast('No se pudo enviar el reporte.', 'info');
+      }
+    });
+  }
 
   // Attach event listeners
   const backdrop = container.querySelector('.fixed.inset-0');

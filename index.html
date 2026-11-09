@@ -86,7 +86,7 @@
   </script>
 
   <!-- Custom CSS -->
-  <link rel="stylesheet" href="css/main.css?v=5.0">
+  <link rel="stylesheet" href="css/main.css?v=5.1">
 </head>
 <body class="bg-slate-950">
 
@@ -145,8 +145,8 @@
       <!-- Botón de Añadir WC en Sidebar -->
       <div class="pt-4 border-t border-slate-800/80 flex flex-col gap-3">
         <button id="sidebar-add-wc-btn" class="w-full bg-gradient-to-r from-amber-500 to-yellow-400 hover:from-amber-600 hover:to-yellow-500 text-slate-950 font-black text-xs py-3 px-4 rounded-xl shadow-lg transition flex items-center justify-center gap-2 active:scale-95">
-          <span>➕</span>
-          <span>Descubrir Nuevo WC</span>
+          <span>📍</span>
+          <span>Check-in / Nuevo WC</span>
         </button>
 
         <!-- Mini-Widget del Usuario Hunter -->
@@ -179,6 +179,9 @@
 
       <!-- Modal Formulario Añadir WC -->
       <div id="add-modal-container"></div>
+
+      <!-- Modal Check-in rápido -->
+      <div id="checkin-modal-container"></div>
 
       <!-- Barra de Navegación Inferior Móvil (Dock) con Pestaña de Emergencia Resaltada -->
       <nav id="bottom-nav">
@@ -213,7 +216,7 @@
   </div>
 
   <!-- Orquestador Modular JS -->
-  <script type="module" src="js/app.js?v=5.0"></script>
+  <script type="module" src="js/app.js?v=5.1"></script>
 
   <script>
     // Captura global de errores con mensaje claro si ocurre algún fallo

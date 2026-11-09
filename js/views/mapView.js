@@ -33,10 +33,10 @@ export function renderMapView(container) {
           <button
             id="map-add-wc-btn"
             class="tactile-amber-btn bg-gradient-to-r from-amber-500 to-yellow-400 hover:from-amber-400 text-slate-950 font-black text-xs px-3.5 py-3 rounded-2xl shadow-xl flex items-center gap-1.5 pointer-events-auto flex-shrink-0"
-            title="Descubrir Nuevo WC (+100 XP)"
+            title="Check-in o descubrir un WC nuevo"
           >
-            <span class="text-sm">➕</span>
-            <span class="hidden sm:inline font-black">Nuevo (+100 XP)</span>
+            <span class="text-sm">📍</span>
+            <span class="font-black">Estoy aquí</span>
           </button>
         </div>
 
@@ -122,7 +122,7 @@ export function renderMapView(container) {
   const addBtn = container.querySelector('#map-add-wc-btn');
   if (addBtn) {
     addBtn.addEventListener('click', () => {
-      store.openAddModal();
+      store.openCheckin();
     });
   }
 
@@ -181,8 +181,8 @@ function renderPreviewCardHtml(wc) {
         </div>
 
         <div class="flex flex-col items-center flex-shrink-0">
-          <div class="w-12 h-12 rounded-2xl flex flex-col items-center justify-center font-black text-base shadow-lg ${wc.score >= 85 ? 'bg-gradient-to-tr from-emerald-600 to-emerald-400 text-slate-950 shadow-emerald-500/20' : (wc.score >= 70 ? 'bg-gradient-to-tr from-amber-600 to-amber-400 text-slate-950 shadow-amber-500/20' : 'bg-gradient-to-tr from-rose-600 to-rose-400 text-white shadow-rose-500/20')}">
-            <span>${wc.score}</span>
+          <div class="w-12 h-12 rounded-2xl flex flex-col items-center justify-center font-black text-base shadow-lg ${wc.unrated ? 'bg-slate-700 text-slate-200' : (wc.score >= 85 ? 'bg-gradient-to-tr from-emerald-600 to-emerald-400 text-slate-950 shadow-emerald-500/20' : (wc.score >= 70 ? 'bg-gradient-to-tr from-amber-600 to-amber-400 text-slate-950 shadow-amber-500/20' : 'bg-gradient-to-tr from-rose-600 to-rose-400 text-white shadow-rose-500/20'))}">
+            <span>${wc.unrated ? '?' : esc(wc.score)}</span>
             <span class="text-[8px] font-bold uppercase tracking-wider opacity-80 leading-none">SCORE</span>
           </div>
         </div>
@@ -205,7 +205,7 @@ function renderPreviewCardHtml(wc) {
         <div class="flex flex-col items-center text-center">
           <span class="text-[9px] uppercase tracking-wider text-slate-400 font-extrabold">VOLVERÍA</span>
           <span class="font-extrabold text-emerald-400 mt-0.5">
-            👍 ${wouldRet.percent}%
+            ${wouldRet.total > 0 ? `👍 ${wouldRet.percent}%` : '—'}
           </span>
         </div>
       </div>

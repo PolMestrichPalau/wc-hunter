@@ -21,11 +21,14 @@ function buildLeaderboard() {
     city: (u.visited_cities && u.visited_cities.length) ? u.visited_cities[u.visited_cities.length - 1] : 'Madrid',
     isMe: true
   };
+  // En modo comunidad no se mezclan Hunters de ejemplo (el ranking global llega en la Fase 2)
+  if (store.remote) return [me];
   return [...TOP_HUNTERS_LEADERBOARD, me].sort((a, b) => b.xp - a.xp);
 }
 
 export function renderRankingView(container) {
-  const wcs = [...store.wcs];
+  // Solo entran en los rankings los baños que alguien ha valorado
+  const wcs = store.wcs.filter(w => !w.unrated);
 
   let sortedWcs = [...wcs];
   if (wcFilter === 'best') {
@@ -83,7 +86,13 @@ export function renderRankingView(container) {
 
       <!-- Contenido -->
       <div class="px-4 sm:px-6 py-5 flex flex-col gap-3 max-w-4xl mx-auto w-full">
-        ${activeRankingTab === 'wcs' ? (
+        ${activeRankingTab === 'wcs' && sortedWcs.length === 0 ? `
+          <div class="bg-slate-900/60 border border-slate-800 rounded-2xl p-8 text-center">
+            <span class="text-4xl">🏜️</span>
+            <h3 class="text-base font-bold text-white mt-2">Aún no hay baños valorados${store.remote ? ' en esta zona' : ''}</h3>
+            <p class="text-xs text-slate-400 mt-1">Haz el primer check-in y entra en el ranking.</p>
+          </div>
+        ` : activeRankingTab === 'wcs' ? (
           sortedWcs.map((wc, idx) => {
             const medal = idx === 0 ? '🥇' : (idx === 1 ? '🥈' : (idx === 2 ? '🥉' : `#${idx + 1}`));
             return `

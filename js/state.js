@@ -6,6 +6,7 @@ import { calculateRarityAndDifficulty, calculateXPForAction } from './algorithms
 import { calculateLevel } from './engines/gameEngine.js';
 import { calculateWCScore, calculateConfidence } from './engines/wcEngine.js';
 import { UNLOCKED_TITLES_POOL, getAchievementProgress } from './engines/userEngine.js';
+import { backend, rowToWc, describeError } from './backend.js';
 
 const STORAGE_KEY = 'wc_hunter_state_v2';
 const BACKUP_KEY = 'wc_hunter_state_v2_backup';
@@ -32,6 +33,182 @@ class Store {
   // ---- PERSISTENCIA ----
 
   loadState() {
+    // MODO COMUNIDAD (Supabase configurado): los datos vienen del servidor y nada se guarda en local.
+    this.remote = backend.enabled;
+    this.remoteReady = false;
+    if (this.remote) {
+      this.wcs = [];
+      this.user = this.remoteBaseUser();
+      this.missions = clone(MISSIONS_LIST);
+    } else {
+      this.loadLocal();
+    }
+
+    // Estado efímero de sesión
+    this.currentTab = 'map';
+    this.intentFilter = null;
+    this.searchQuery = '';
+    this.selectedWc = null;
+    this.isAddModalOpen = false;
+    this.checkin = null; // { wcId } cuando el modal de check-in esta abierto
+    this.activeToasts = [];
+    this.locationRequested = false;
+    this.userLocation = { lat: 40.4168, lng: -3.7038, name: 'Madrid (Sol)', city: 'Madrid', country: 'España' }; // fallback inicial
+  }
+
+  /** Usuario "vacío" mientras llega el perfil real del servidor (sin datos de demo). */
+  remoteBaseUser() {
+    const u = this.normalizeUser(null);
+    Object.assign(u, {
+      id: null, username: 'Conectando…', avatar: '🧔', title: '🚽 Novato del Retrete',
+      xp: 0, level: 1, streak_days: 0, reputation: 100,
+      unlocked_achievements: [], unlocked_titles: ['🚽 Novato del Retrete'],
+      verified_log: {}, discovery_log: [], visited_cities: [], visited_countries: []
+    });
+    u.stats = {
+      visited_count: 0, discovered_count: 0, verifications_count: 0, photos_count: 0,
+      cities_count: 0, countries_count: 0, achievements_count: 0, secrets_found: 0, paper_verifs: 0, clean_reports: 0
+    };
+    return u;
+  }
+
+  /** Conecta con la comunidad. Si falla, vuelve al modo local sin romper nada. */
+  async connect() {
+    if (!this.remote) return false;
+    try {
+      if (!(await backend.init())) throw backend.error || new Error('init_failed');
+      this.applyRemoteProfile(await backend.myProfile());
+      this.remoteReady = true;
+      this.notify('REMOTE_READY', this.user);
+      return true;
+    } catch (e) {
+      console.warn('Comunidad no disponible, modo local:', e);
+      this.remote = false;
+      this.loadLocal();
+      this.showToast('📴 Sin conexión con la comunidad: modo local', 'info', 5000);
+      this.notify('REMOTE_FAILED', e);
+      return false;
+    }
+  }
+
+  applyRemoteProfile(p) {
+    if (!p) return;
+    Object.assign(this.user, {
+      id: p.id, username: p.username, avatar: p.avatar, title: p.title,
+      xp: p.xp, level: p.level, streak_days: p.streak_days
+    });
+    const s = p.stats || {};
+    Object.assign(this.user.stats, {
+      visited_count: s.checkins || 0, verifications_count: s.checkins || 0,
+      discovered_count: s.discovered || 0, photos_count: s.photos || 0, secrets_found: s.secrets || 0
+    });
+    if (!this.user.unlocked_titles.includes(p.title)) this.user.unlocked_titles.push(p.title);
+  }
+
+  /** Mezcla WC del servidor en memoria. Devuelve true si hay algo nuevo o cambiado. */
+  mergeRemoteWcs(list) {
+    const byId = new Map(this.wcs.map(w => [w.id, w]));
+    let changed = false;
+    for (const raw of list) {
+      const wc = this.normalizeWc(raw);
+      const prev = byId.get(wc.id);
+      if (!prev || prev.checkins_sig !== wc.checkins_sig) changed = true;
+      byId.set(wc.id, wc);
+    }
+    this.wcs = [...byId.values()].slice(-3000);
+    // Mantener sincronizada la ficha abierta
+    if (this.selectedWc) this.selectedWc = byId.get(this.selectedWc.id) || this.selectedWc;
+    return changed;
+  }
+
+  async loadBounds(bounds) {
+    if (!this.remote || !this.remoteReady) return false;
+    try {
+      const changed = this.mergeRemoteWcs(await backend.wcsInBounds(bounds));
+      if (changed) this.notify('WCS_LOADED');
+      return changed;
+    } catch (e) {
+      console.warn('loadBounds', e);
+      return false;
+    }
+  }
+
+  async loadAround(lat, lng, radius = 3000) {
+    if (!this.remote || !this.remoteReady) return false;
+    try {
+      const changed = this.mergeRemoteWcs(await backend.nearby(lat, lng, radius, 100));
+      if (changed) this.notify('WCS_LOADED');
+      return changed;
+    } catch (e) {
+      console.warn('loadAround', e);
+      return false;
+    }
+  }
+
+  /** WC (ya normalizados) a menos de `radius` m de un punto, del servidor o de memoria. */
+  async fetchNearby(lat, lng, radius = 150) {
+    if (this.remote && this.remoteReady) {
+      this.mergeRemoteWcs(await backend.nearby(lat, lng, radius, 20));
+    }
+    return this.wcs;
+  }
+
+  /** Aplica el resultado de check_in / create_wc (XP calculado por el servidor). */
+  async applyRemoteResult(res) {
+    const oldLevel = this.user.level;
+    const p = res.profile || {};
+    if (res.xp_awarded > 0) this.showToast(`+${res.xp_awarded} XP`, 'xp');
+    Object.assign(this.user, { xp: p.xp ?? this.user.xp, level: p.level ?? this.user.level, streak_days: p.streak_days ?? this.user.streak_days });
+    if (this.user.level > oldLevel) {
+      this.showToast(`🎉 ¡SUBIDA DE NIVEL! Ahora eres Nivel ${this.user.level}`, 'level_up', 5000);
+      this.notify('LEVEL_UP', this.user.level);
+    }
+    try { this.applyRemoteProfile(await backend.myProfile()); } catch (e) {}
+    this.notify('XP_EARNED', { amount: res.xp_awarded });
+  }
+
+  async remoteCheckIn(args) {
+    try {
+      const res = await backend.checkIn(args);
+      await this.applyRemoteResult(res);
+      await this.fetchNearby(args.lat, args.lng, 200);
+      this.notify('WC_VERIFIED', this.wcs.find(w => w.id === args.wcId));
+      return res;
+    } catch (e) {
+      throw Object.assign(new Error(describeError(e).message), { code: describeError(e).code, arg: describeError(e).arg });
+    }
+  }
+
+  async remoteCreateWc(args) {
+    try {
+      const res = await backend.createWc(args);
+      await this.applyRemoteResult(res);
+      await this.fetchNearby(args.lat, args.lng, 200);
+      this.notify('WC_CREATED', this.wcs.find(w => w.id === res.wc_id));
+      return res;
+    } catch (e) {
+      throw Object.assign(new Error(describeError(e).message), { code: describeError(e).code, arg: describeError(e).arg });
+    }
+  }
+
+  async remoteReport(wcId, reason) {
+    const res = await backend.reportWc(wcId, reason);
+    if (res.hidden) this.wcs = this.wcs.filter(w => w.id !== wcId);
+    return res;
+  }
+
+  openCheckin(wcId = null) {
+    this.checkin = { wcId };
+    this.notify('CHECKIN_OPEN', this.checkin);
+  }
+
+  closeCheckin() {
+    this.checkin = null;
+    this.notify('CHECKIN_CLOSE', null);
+  }
+
+  /** Carga local (modo sin comunidad): localStorage + datos de demo. */
+  loadLocal() {
     let parsed = null;
     const ls = safeStorage();
     try {
@@ -69,15 +246,6 @@ class Store {
       this.resetToDefaults();
     }
 
-    // Estado efímero de sesión
-    this.currentTab = 'map';
-    this.intentFilter = null;
-    this.searchQuery = '';
-    this.selectedWc = null;
-    this.isAddModalOpen = false;
-    this.activeToasts = [];
-    this.locationRequested = false;
-    this.userLocation = { lat: 40.4168, lng: -3.7038, name: 'Madrid (Sol)', city: 'Madrid', country: 'España' }; // fallback inicial
   }
 
   hydrate(parsed) {
@@ -181,11 +349,16 @@ class Store {
       creator_name: wc.creator_name || '',
       reviews_count: reviews,
       verified_by_count: num(wc.verified_by_count, Math.max(1, reviews)),
-      recent_reports: Array.isArray(wc.recent_reports) ? wc.recent_reports.slice(-MAX_REPORTS_KEPT) : []
+      recent_reports: Array.isArray(wc.recent_reports) ? wc.recent_reports.slice(-MAX_REPORTS_KEPT) : [],
+      unrated: Boolean(wc.unrated),   // WC sin ninguna valoración todavía (p. ej. semilla de OpenStreetMap)
+      source: wc.source || 'local',
+      // Firma para detectar cambios al refrescar desde el servidor
+      checkins_sig: `${wc.verified_by_count ?? reviews}|${wc.score}|${wc.current_status}`
     };
   }
 
   saveState() {
+    if (this.remote) return; // en modo comunidad el servidor es la fuente de verdad
     const ls = safeStorage();
     if (!ls) return;
     try {
@@ -300,6 +473,8 @@ class Store {
   }
 
   checkAchievement(achievementId) {
+    // En modo comunidad el XP lo concede SOLO el servidor (logros online: Fase 2)
+    if (this.remote) return;
     if (this.user.unlocked_achievements.includes(achievementId)) return;
     const ach = ACHIEVEMENTS_CATALOG.find(a => a.id === achievementId);
     if (!ach) return;
@@ -311,6 +486,7 @@ class Store {
   }
 
   checkMissions(type, count = 1) {
+    if (this.remote) return;
     const MAP = { paper: 'mis_paper_10', clean: 'mis_clean_check', secret: 'mis_secret_hunt' };
     this.missions.forEach(mission => {
       if (mission.completed || MAP[type] !== mission.id) return;
@@ -455,7 +631,7 @@ class Store {
   /**
    * Da de alta un WC nuevo. Devuelve true si se creo, false si los datos no son validos.
    */
-  addNewWC(data) {
+  addNewWC(data, { openDetail = true } = {}) {
     const name = String(data.name || '').trim().slice(0, 80);
     const lat = Number(data.latitude);
     const lng = Number(data.longitude);
@@ -562,7 +738,7 @@ class Store {
 
     this.closeAddModal();
     this.showToast(`🎉 ¡WC "${newWC.name}" añadido con éxito!`, 'success', 4000);
-    this.openWcDetail(newWC.id);
+    if (openDetail) this.openWcDetail(newWC.id);
     this.notify('WC_CREATED', newWC);
     return true;
   }

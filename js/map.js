@@ -139,12 +139,28 @@ class MapManager {
       this.initialized = true;
       this.renderMarkers();
 
+      // Modo comunidad: cargar los baños de la zona visible cada vez que se mueve el mapa
+      this.map.on('moveend', () => this.scheduleLoad());
+      this.scheduleLoad();
+
       // Forzar ajuste del tamaño del mapa tras renderizado
       setTimeout(() => { if (this.map) this.map.invalidateSize(); }, 100);
       setTimeout(() => { if (this.map) this.map.invalidateSize(); }, 350);
     } catch (err) {
       console.warn('Error inicializando mapa Leaflet:', err);
     }
+  }
+
+  /** (Modo comunidad) carga con debounce los baños del área visible; ignora zooms muy alejados. */
+  scheduleLoad() {
+    if (!store.remote) return;
+    clearTimeout(this._loadTimer);
+    this._loadTimer = setTimeout(() => {
+      if (!this.map || !store.remoteReady) return;
+      if (this.map.getZoom() < 12) return;
+      const b = this.map.getBounds();
+      store.loadBounds({ south: b.getSouth(), west: b.getWest(), north: b.getNorth(), east: b.getEast() });
+    }, 350);
   }
 
   renderMarkers() {
@@ -157,7 +173,7 @@ class MapManager {
 
     wcs.forEach(wc => {
       const semantic = getSemanticStatus(wc);
-      const isTopWC = wc.score >= 90 && wc.score === maxScore;
+      const isTopWC = !wc.unrated && wc.score >= 90 && wc.score === maxScore;
 
       let badgeColor = '#10b981'; // esmeralda
       let bgStyle = 'linear-gradient(135deg, #059669, #10b981)';
@@ -179,7 +195,14 @@ class MapManager {
         shadowGlow = 'rgba(168, 85, 247, 0.4)';
       }
 
-      const labelText = wc.is_secret ? '🔐' : `${esc(wc.score)}`;
+      // Sin valorar: pin gris con "?" (invitación a ser el primero en documentarlo)
+      if (wc.unrated && !wc.is_secret) {
+        badgeColor = '#64748b';
+        bgStyle = 'linear-gradient(135deg, #475569, #64748b)';
+        shadowGlow = 'rgba(100, 116, 139, 0.35)';
+      }
+
+      const labelText = wc.is_secret ? '🔐' : (wc.unrated ? '?' : `${esc(wc.score)}`);
 
       const markerHtml = `
         <div class="relative cursor-pointer group select-none" style="transform: translate(-50%, -50%);">

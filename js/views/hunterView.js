@@ -8,6 +8,59 @@ import { ACHIEVEMENTS_CATALOG } from '../seedData.js';
 import { computeCollections, computeUpcomingAchievements } from '../engines/userEngine.js';
 import { esc } from '../utils.js';
 
+/** Hunter en modo comunidad: progreso real del servidor. Misiones/logros online llegan en la Fase 2. */
+function renderCommunityHunter(container, user, levelInfo) {
+  const s = user.stats;
+  const stat = (label, value, color) => `
+    <div class="bg-slate-800/80 p-3 rounded-2xl border border-slate-700/50">
+      <span class="text-[11px] font-bold text-slate-400">${label}</span>
+      <span class="text-xl font-black ${color} block mt-1">${esc(value)}</span>
+    </div>`;
+  container.innerHTML = `
+    <div class="w-full h-full flex flex-col bg-slate-950 text-slate-100 overflow-y-auto pb-24 md:pb-8">
+      <div class="sticky top-0 z-20 bg-slate-900/95 backdrop-blur-md px-4 sm:px-6 pt-5 pb-4 border-b border-slate-800/80 shadow-md">
+        <h1 class="text-xl sm:text-2xl font-black text-white flex items-center gap-2"><span>💩</span><span>HUNTER GAME HUB</span></h1>
+        <p class="text-xs text-slate-400 mt-0.5">Tu progreso en la comunidad</p>
+      </div>
+      <div class="px-4 sm:px-6 py-5 flex flex-col gap-5 max-w-4xl mx-auto w-full">
+        <div class="bg-surface-container/95 border border-white/10 rounded-3xl p-5 shadow-xl flex flex-col gap-3">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-3">
+              <div class="w-14 h-14 rounded-2xl bg-emerald-500/10 border-2 border-emerald-400 flex items-center justify-center text-3xl">${esc(user.avatar)}</div>
+              <div>
+                <h2 class="text-lg font-black text-white">NIVEL ${levelInfo.level} <span class="text-xs text-emerald-400">${esc(levelInfo.rank)}</span></h2>
+                <p class="text-xs font-bold text-slate-400">${esc(user.username)}</p>
+              </div>
+            </div>
+            <div class="flex flex-col items-center bg-slate-950/80 border border-orange-500/40 rounded-2xl px-4 py-2">
+              <span class="text-2xl">🔥</span>
+              <span class="text-sm font-black text-orange-400 leading-none mt-1">${esc(user.streak_days)} DÍAS</span>
+              <span class="text-[9px] text-slate-400 font-bold uppercase">RACHA</span>
+            </div>
+          </div>
+          <div class="flex justify-between text-xs font-bold">
+            <span class="text-slate-400">Siguiente nivel</span>
+            <span class="text-emerald-400 font-black">${user.xp.toLocaleString()} / ${levelInfo.nextBase.toLocaleString()} XP</span>
+          </div>
+          <div class="w-full h-3.5 bg-slate-950 rounded-full overflow-hidden p-0.5 border border-white/10">
+            <div class="h-full bg-gradient-to-r from-emerald-500 to-primary rounded-full transition-all duration-500" style="width: ${levelInfo.percent}%"></div>
+          </div>
+        </div>
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+          ${stat('Check-ins', s.verifications_count, 'text-emerald-400')}
+          ${stat('Descubiertos', s.discovered_count, 'text-amber-400')}
+          ${stat('Fotos', s.photos_count, 'text-blue-400')}
+          ${stat('Secretos', s.secrets_found, 'text-purple-400')}
+        </div>
+        <div class="bg-slate-900/80 border border-dashed border-slate-700 rounded-3xl p-6 text-center">
+          <div class="text-4xl">🚧</div>
+          <h3 class="text-sm font-black text-white mt-2">Misiones, logros y álbum online: próximamente</h3>
+          <p class="text-xs text-slate-400 mt-1">Ahora mismo tu XP se gana con check-ins (+15), descubrimientos (+100) y siendo el primero en documentar un baño (+45).</p>
+        </div>
+      </div>
+    </div>`;
+}
+
 export function renderHunterView(container) {
   const user = store.user;
   const levelInfo = calculateLevel(user.xp);
@@ -17,6 +70,8 @@ export function renderHunterView(container) {
   const catalogTotal = collections.reduce((s, c) => s + c.total, 0);
   const upcoming = computeUpcomingAchievements(user, 4);
   const missions = store.missions || [];
+
+  if (store.remote) return renderCommunityHunter(container, user, levelInfo);
 
   container.innerHTML = `
     <div class="w-full h-full flex flex-col bg-slate-950 text-slate-100 overflow-y-auto pb-24 md:pb-8">
