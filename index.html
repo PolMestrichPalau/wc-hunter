@@ -82,12 +82,17 @@
     }
   </script>
 
-  <!-- Leaflet Map CSS & JS -->
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+  <!-- Leaflet Map CSS & JS (con fallback redundante cdnjs) -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script>
+    if (!window.L) {
+      document.write('<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"><\\/script>');
+    }
+  </script>
 
   <!-- Custom CSS -->
-  <link rel="stylesheet" href="css/main.css?v=4.0">
+  <link rel="stylesheet" href="css/main.css?v=4.1">
 </head>
 <body class="bg-slate-950 select-none">
 
@@ -214,7 +219,7 @@
   </div>
 
   <!-- Orquestador Modular JS -->
-  <script type="module" src="js/app.js?v=4.0"></script>
+  <script type="module" src="js/app.js?v=4.1"></script>
 
   <script>
     // Captura global de errores con mensaje claro si ocurre algún fallo

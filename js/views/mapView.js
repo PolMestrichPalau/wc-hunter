@@ -63,8 +63,8 @@ export function renderMapView(container) {
         </div>
       </div>
 
-      <!-- Contenedor del Mapa Leaflet -->
-      <div id="map-container" class="w-full flex-1 z-0"></div>
+      <!-- Contenedor del Mapa Leaflet Pinned Fullscreen -->
+      <div id="map-container" class="absolute inset-0 w-full h-full z-0"></div>
 
       <!-- BOTÓN DE PÁNICO FLOTANTE DE ALTA VISIBILIDAD (Stitch Specification) -->
       <div class="panic-floating-wrapper ${previewWc ? 'hidden' : ''}">

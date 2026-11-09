@@ -19,17 +19,24 @@ class MapManager {
     if (!el) return;
 
     if (!window.L) {
-      // BUG-13: mostrar mensaje de error visible si Leaflet no cargó (sin conexión, etc.)
+      // Reintentar si la librería Leaflet todavía está descargándose por red
+      if ((this._retryCount || 0) < 30) {
+        this._retryCount = (this._retryCount || 0) + 1;
+        setTimeout(() => this.init(containerId, onMarkerClick), 100);
+        return;
+      }
+
       el.innerHTML = `
-        <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;background:#080c14;color:#94a3b8;text-align:center;padding:24px;gap:12px;">
+        <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;background:#0b1326;color:#94a3b8;text-align:center;padding:24px;gap:12px;">
           <span style="font-size:48px;">🗺️</span>
           <p style="font-size:13px;font-weight:800;color:#f8fafc;">Mapa no disponible</p>
           <p style="font-size:12px;">Sin conexión a Internet. El mapa requiere acceso a la red.</p>
-          <button onclick="window.location.reload()" style="margin-top:8px;background:#f59e0b;color:#000;font-weight:800;font-size:12px;padding:8px 20px;border-radius:12px;border:none;cursor:pointer;">🔄 Reintentar</button>
+          <button onclick="window.location.reload()" style="margin-top:8px;background:#10b981;color:#000;font-weight:800;font-size:12px;padding:8px 20px;border-radius:12px;border:none;cursor:pointer;">🔄 Reintentar</button>
         </div>
       `;
       return;
     }
+    this._retryCount = 0;
 
     // Si ya había una instancia previa de Leaflet, la destruimos de forma segura
     if (this.map) {
@@ -39,6 +46,11 @@ class MapManager {
       this.map = null;
       this.markersLayer = null;
       this.userMarker = null;
+    }
+
+    // Prevenir error 'Map container is already initialized'
+    if (el._leaflet_id) {
+      delete el._leaflet_id;
     }
 
     this.onMarkerClickCallback = onMarkerClick;
@@ -53,12 +65,22 @@ class MapManager {
 
       window.L.control.zoom({ position: 'bottomright' }).addTo(this.map);
 
-      // CartoDB Dark Matter — Mapa urbano oscuro táctico (Stitch Specification)
-      window.L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+      // CartoDB Dark Matter con fallback automático a OpenStreetMap en caso de error
+      const tiles = window.L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
         attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a> &copy; <a href="https://carto.com/" target="_blank">CARTO</a>',
         subdomains: 'abcd',
         maxZoom: 19
-      }).addTo(this.map);
+      });
+
+      tiles.on('tileerror', (error, tile) => {
+        if (tile && !tile._fallbackDone) {
+          tile._fallbackDone = true;
+          const coords = error.coords;
+          tile.src = `https://tile.openstreetmap.org/${coords.z}/${coords.x}/${coords.y}.png`;
+        }
+      });
+
+      tiles.addTo(this.map);
 
       this.markersLayer = window.L.layerGroup().addTo(this.map);
 
@@ -97,6 +119,10 @@ class MapManager {
 
       this.initialized = true;
       this.renderMarkers();
+
+      // Forzar ajuste del tamaño del mapa tras renderizado
+      setTimeout(() => { if (this.map) this.map.invalidateSize(); }, 100);
+      setTimeout(() => { if (this.map) this.map.invalidateSize(); }, 350);
     } catch (err) {
       console.warn('Error inicializando mapa Leaflet:', err);
     }
