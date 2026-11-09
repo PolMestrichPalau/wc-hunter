@@ -31,12 +31,10 @@ try {
             $request = $context.Request
             $response = $context.Response
 
-            $response.Headers.Add("Access-Control-Allow-Origin", "*")
-            $response.Headers.Add("Access-Control-Allow-Headers", "*")
-            $response.Headers.Add("Access-Control-Allow-Methods", "GET, HEAD, OPTIONS")
-
-            if ($request.HttpMethod -eq "OPTIONS") {
-                $response.StatusCode = 200
+            # Sin cabeceras CORS: la app se sirve desde el mismo origen y ninguna otra web
+            # debe poder leer estos ficheros desde el navegador del usuario.
+            if ($request.HttpMethod -notin @("GET", "HEAD")) {
+                $response.StatusCode = 405
                 $response.Close()
                 continue
             }

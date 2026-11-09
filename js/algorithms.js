@@ -1,29 +1,32 @@
 ﻿/**
- * WC HUNTER - Algoritmos Matematicos y Motores de Calculo V1.0
+ * WC HUNTER - Algoritmos de gamificacion y rareza.
  *
- * NOTA: calculateWCScore, calculateConfidence, getSemanticStatus y formatRelativeTime
- * viven en js/engines/wcEngine.js (unico source of truth).
- * Este fichero contiene unicamente los algoritmos exclusivos de gamificacion y rareza.
+ * - Puntuacion/confianza/estado/tiempo/distancia: js/engines/wcEngine.js
+ * - Niveles y rangos: js/engines/gameEngine.js (calculateLevel, unica fuente de verdad)
  */
 
 /**
- * Calcula la rareza de un WC en base a su tipo, dificultad y exclusividad
+ * Calcula la rareza de un WC en base a su tipo, dificultad y exclusividad.
+ * La rareza maxima que puede autoasignarse un usuario es LEGENDARY (MYTHIC se reserva
+ * a datos curados) para evitar farmeo de XP.
  */
 export function calculateRarityAndDifficulty(wc) {
   const typeRarityMap = {
-    airplane: 'MYTHIC',
-    police_station: 'MYTHIC',
-    train: 'EPIC',
-    stadium: 'EPIC',
-    university_top: 'EPIC',
-    luxury_hotel: 'LEGENDARY',
-    vip_lounge: 'LEGENDARY',
+    airplane: 'EPIC',
+    police_station: 'EPIC',
+    lighthouse: 'EPIC',
+    vip_lounge: 'EPIC',
+    train: 'RARE',
+    stadium: 'RARE',
+    university_top: 'RARE',
+    luxury_hotel: 'RARE',
     museum: 'RARE',
     beach: 'RARE',
     shopping_mall: 'COMMON',
     gas_station: 'COMMON',
     public_park: 'COMMON',
     public_street: 'COMMON',
+    public_building: 'COMMON',
     restaurant: 'COMMON',
     cafe: 'COMMON',
     other: 'COMMON'
@@ -77,31 +80,4 @@ export function calculateXPForAction(action, metadata = {}) {
     default:
       return 10;
   }
-}
-
-/**
- * Escala de Niveles y Titulos por XP: XP = 100 * Level ^ 1.6
- */
-export function calculateUserLevel(xp) {
-  const level = Math.max(1, Math.floor(Math.pow(Math.max(0, xp) / 100, 1 / 1.6)) + 1);
-  const currentLevelBaseXP = Math.floor(100 * Math.pow(level - 1, 1.6));
-  const nextLevelXP = Math.floor(100 * Math.pow(level, 1.6));
-  const progressPercent = Math.min(100, Math.max(0, Math.round(((xp - currentLevelBaseXP) / (nextLevelXP - currentLevelBaseXP)) * 100)));
-
-  let rankTitle = 'Novato del Retrete';
-  if (level >= 100) rankTitle = 'Leyenda del Retrete';
-  else if (level >= 75) rankTitle = 'Senor del Trono';
-  else if (level >= 50) rankTitle = 'Maestro de la Porcelana';
-  else if (level >= 30) rankTitle = 'Explorador de Cloacas';
-  else if (level >= 20) rankTitle = 'Inspector de Higiene';
-  else if (level >= 10) rankTitle = 'Hunter Certificado';
-  else if (level >= 5) rankTitle = 'Caganer Promesa';
-
-  return {
-    level,
-    rankTitle,
-    currentXP: xp,
-    nextLevelXP,
-    progressPercent
-  };
 }

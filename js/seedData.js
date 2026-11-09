@@ -6,7 +6,7 @@ export const INITIAL_USER = {
   id: "usr_pol_01",
   username: "PolM",
   avatar: "🧔‍♂️",
-  level: 18,
+  level: 10,
   xp: 3840,
   reputation: 96,
   title: "🚽 Duque del Retrete",
@@ -29,9 +29,17 @@ export const INITIAL_USER = {
     photos_count: 46,
     cities_count: 12,
     countries_count: 4,
-    achievements_count: 34,
-    secrets_found: 7
+    achievements_count: 9,
+    secrets_found: 7,
+    paper_verifs: 0,
+    clean_reports: 0
   },
+  // Registros para antifraude y progreso real
+  verified_log: {},        // { wcId: timestamp de la ultima verificacion }
+  discovery_log: [],       // timestamps de descubrimientos (limite diario de XP)
+  visited_cities: [],
+  visited_countries: [],
+  last_active_date: null,
   unlocked_achievements: [
     "first_wc",
     "paper_hero",
@@ -48,13 +56,6 @@ export const INITIAL_USER = {
     total: 120
   }
 };
-
-export const UPCOMING_ACHIEVEMENTS = [
-  { id: "altitude_caganer", name: "✈️ Cagón de altura", progress: "1/1", completed: true, icon: "✈️" },
-  { id: "police_caganer", name: "🚓 Cagón de comisaría", progress: "0/1", completed: false, icon: "🚓" },
-  { id: "stadium_caganer", name: "🏟️ Cagón de estadio", progress: "2/1", completed: true, icon: "🏟️" },
-  { id: "secret_master", name: "🔐 Maestro de los Secretos", progress: "4/5", completed: false, icon: "🔐" }
-];
 
 export const ACHIEVEMENTS_CATALOG = [
   { id: "first_wc", name: "Primer Marcaje", description: "Descubre o verifica tu primer WC.", xp: 50, icon: "🚽" },
@@ -78,16 +79,6 @@ export const MISSIONS_LIST = [
   { id: "mis_clean_check", title: "Control de Calidad", description: "Verifica 3 WC limpios esta semana", progress: 2, target: 3, xp_reward: 50, completed: false },
   { id: "mis_secret_hunt", title: "Caza Secreta", description: "Descubre 1 WC secreto no documentado", progress: 0, target: 1, xp_reward: 150, completed: false }
 ];
-
-export const COLLECTIONS = [
-  { id: "public", name: "Públicos Urbanos", icon: "🚽", collected: 18, total: 30, color: "emerald" },
-  { id: "transport", name: "Transporte y Viajes", icon: "✈️", collected: 5, total: 12, color: "blue" },
-  { id: "culture", name: "Cultura y Museos", icon: "🏛️", collected: 4, total: 15, color: "amber" },
-  { id: "sports", name: "Deportes y Estadios", icon: "🏟️", collected: 3, total: 8, color: "indigo" },
-  { id: "secrets", name: "WCs Secretos", icon: "🔐", collected: 7, total: 20, color: "purple" }
-];
-
-export const COLLECTION_CATEGORIES = COLLECTIONS;
 
 
 export const INITIAL_WCS = [
@@ -396,7 +387,6 @@ export const INITIAL_WCS = [
 
 export const TOP_HUNTERS_LEADERBOARD = [
   { rank: 1, name: "🚽 MasterFlush_99", title: "👑 Leyenda del Retrete", xp: 12450, discovered: 42, verifs: 310, rep: 98, city: "Madrid" },
-  { rank: 2, name: "PolM (Tú)", title: "🚽 Duque del Retrete", xp: 3840, discovered: 14, verifs: 132, rep: 96, city: "Madrid" },
   { rank: 3, name: "🧻 PapelMan", title: "Príncipe del Papel", xp: 3510, discovered: 11, verifs: 98, rep: 92, city: "Barcelona" },
   { rank: 4, name: "LaReinaDelTrono", title: "Inspectora Suprema", xp: 3250, discovered: 9, verifs: 114, rep: 95, city: "Valencia" },
   { rank: 5, name: "CaganerNinja", title: "Explorador de Cloacas", xp: 2900, discovered: 8, verifs: 76, rep: 89, city: "Sevilla" }

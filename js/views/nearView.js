@@ -3,7 +3,8 @@
  * Herramienta funcional inmediata para emergencias y filtrado por necesidad directa.
  */
 import { store } from '../state.js';
-import { getSemanticStatus, formatRelativeTime, calculateDistanceMeters, formatWouldReturn } from '../engines/wcEngine.js';
+import { getSemanticStatus, formatRelativeTime, calculateDistanceMeters, formatWouldReturn, formatAccessShort, formatDistance, formatWalkTime } from '../engines/wcEngine.js';
+import { esc } from '../utils.js';
 
 export function renderNearView(container) {
   const uLoc = store.userLocation;
@@ -20,7 +21,7 @@ export function renderNearView(container) {
   if (currentIntent === 'clean') {
     filtered.sort((a, b) => (b.score_breakdown?.cleanliness || 0) - (a.score_breakdown?.cleanliness || 0));
   } else if (currentIntent === 'free') {
-    filtered = filtered.filter(w => w.access_type === 'free' || w.price === 0);
+    filtered = filtered.filter(w => w.access_type === 'free');
     filtered.sort((a, b) => a.distanceMeters - b.distanceMeters);
   } else if (currentIntent === 'private') {
     filtered.sort((a, b) => (b.score_breakdown?.privacy || 0) - (a.score_breakdown?.privacy || 0));
@@ -56,7 +57,7 @@ export function renderNearView(container) {
               <span>NECESITO UN WC</span>
             </h1>
             <p class="text-xs text-slate-400 mt-0.5">
-              Ubicación: <span class="text-amber-400 font-bold">${uLoc.name}</span> · Respuesta en 2 segundos
+              Ubicación: <span class="text-amber-400 font-bold">${esc(uLoc.name)}</span> · Respuesta en 2 segundos
             </p>
           </div>
           <span class="text-xs font-black bg-rose-500/20 text-rose-300 border border-rose-500/40 px-3 py-1 rounded-xl">
@@ -115,7 +116,7 @@ export function renderNearView(container) {
           <h2 class="text-xs font-black uppercase tracking-wider text-slate-400">
             WC Recomendados Ahora (${filtered.length})
           </h2>
-          <span class="text-xs text-slate-500 font-semibold">Ordenados por idoneidad</span>
+          <span class="text-xs text-slate-500 font-semibold">${currentIntent === 'clean' || currentIntent === 'private' || currentIntent === 'equipped' ? 'Ordenados por calidad' : 'Ordenados por cercanía'}</span>
         </div>
 
         ${filtered.length === 0 ? `
@@ -127,24 +128,24 @@ export function renderNearView(container) {
         ` : filtered.map(wc => {
           const semantic = getSemanticStatus(wc);
           const wouldRet = formatWouldReturn(wc.would_return_ratio);
-          const distStr = wc.distanceMeters < 1000 ? `${wc.distanceMeters} m` : `${(wc.distanceMeters / 1000).toFixed(1)} km`;
-          const walkMin = Math.max(1, Math.round(wc.distanceMeters / 80));
+          const walk = formatWalkTime(wc.distanceMeters);
+          const distStr = `${formatDistance(wc.distanceMeters)}${walk ? ` (${walk})` : ''}`;
 
           return `
-            <div class="bg-surface-container/90 border border-white/10 hover:border-emerald-500/40 rounded-3xl p-4.5 shadow-xl transition-all active:scale-[0.99] flex flex-col gap-3 cursor-pointer wc-rescue-card" data-wc-id="${wc.id}">
+            <div class="bg-surface-container/90 border border-white/10 hover:border-emerald-500/40 rounded-3xl p-4 shadow-xl transition-all active:scale-[0.99] flex flex-col gap-3 cursor-pointer wc-rescue-card" data-wc-id="${esc(wc.id)}">
               
               <!-- Línea 1: Nombre + Distancia + WC Score -->
               <div class="flex items-start justify-between gap-3">
                 <div class="min-w-0 flex-1">
                   <div class="flex items-center gap-2 mb-1 flex-wrap">
-                    <span class="text-sm font-extrabold text-white truncate">${wc.name}</span>
+                    <span class="text-sm font-extrabold text-white truncate">${esc(wc.name)}</span>
                     <span class="text-[11px] font-bold text-cyan-400 bg-cyan-950/60 border border-cyan-500/30 px-2 py-0.5 rounded-full">
-                      📍 ${distStr} (~${walkMin} min)
+                      📍 ${esc(distStr)}
                     </span>
                     ${wc.is_secret ? `<span class="text-[10px] font-black bg-purple-950 text-purple-300 px-1.5 py-0.5 rounded-full border border-purple-500/30">🔐 SECRETO</span>` : ''}
                   </div>
                   <div class="flex items-center gap-2 text-xs font-semibold text-slate-400">
-                    <span class="truncate">${wc.address}</span>
+                    <span class="truncate">${esc(wc.address)}, ${esc(wc.city)}</span>
                   </div>
                 </div>
 
@@ -164,7 +165,7 @@ export function renderNearView(container) {
                   </span>
                   <span>·</span>
                   <span class="font-bold text-slate-300">
-                    ${wc.access_type === 'free' ? '🆓 Gratis' : (wc.access_type === 'customers_only' ? '🍔 Solo clientes' : `💰 ${wc.price?.toFixed(2) || '0.50'} €`)}
+                    ${esc(formatAccessShort(wc))}
                   </span>
                   <span>·</span>
                   <span class="font-bold text-slate-300">

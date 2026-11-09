@@ -1,9 +1,11 @@
 /**
- * WC HUNTER — Módulo de Mapa Minimalista Leaflet V2.0
+ * WC HUNTER — Módulo de Mapa Minimalista Leaflet V2.1
  * Marcadores ultra-visuales y limpios: "¿Dónde están?"
  */
 import { store } from './state.js';
 import { getSemanticStatus } from './engines/wcEngine.js';
+import { esc } from './utils.js';
+import { reverseGeocode } from './geo.js';
 
 class MapManager {
   constructor() {
@@ -12,6 +14,20 @@ class MapManager {
     this.userMarker = null;
     this.initialized = false;
     this.onMarkerClickCallback = null;
+    this.lastView = null; // vista (centro/zoom) para no perderla al cambiar de pestaña
+  }
+
+  /** Guarda la vista y destruye el mapa (al salir de la pestaña Mapa) */
+  destroy() {
+    if (!this.map) return;
+    try {
+      this.lastView = { center: this.map.getCenter(), zoom: this.map.getZoom() };
+      this.map.remove();
+    } catch (e) {}
+    this.map = null;
+    this.markersLayer = null;
+    this.userMarker = null;
+    this.initialized = false;
   }
 
   init(containerId = 'map-container', onMarkerClick = null) {
@@ -39,14 +55,7 @@ class MapManager {
     this._retryCount = 0;
 
     // Si ya había una instancia previa de Leaflet, la destruimos de forma segura
-    if (this.map) {
-      try {
-        this.map.remove();
-      } catch (e) {}
-      this.map = null;
-      this.markersLayer = null;
-      this.userMarker = null;
-    }
+    this.destroy();
 
     // Prevenir error 'Map container is already initialized'
     if (el._leaflet_id) {
@@ -55,11 +64,14 @@ class MapManager {
 
     this.onMarkerClickCallback = onMarkerClick;
     const { lat, lng } = store.userLocation;
+    const start = this.lastView
+      ? { lat: this.lastView.center.lat, lng: this.lastView.center.lng, zoom: this.lastView.zoom }
+      : { lat, lng, zoom: 14 };
 
     try {
       this.map = window.L.map(containerId, {
-        center: [lat, lng],
-        zoom: 14,
+        center: [start.lat, start.lng],
+        zoom: start.zoom,
         zoomControl: false
       });
 
@@ -67,15 +79,17 @@ class MapManager {
 
       // CartoDB Dark Matter con fallback automático a OpenStreetMap en caso de error
       const tiles = window.L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a> &copy; <a href="https://carto.com/" target="_blank">CARTO</a>',
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> &copy; <a href="https://carto.com/" target="_blank" rel="noopener">CARTO</a>',
         subdomains: 'abcd',
         maxZoom: 19
       });
 
-      tiles.on('tileerror', (error, tile) => {
-        if (tile && !tile._fallbackDone) {
+      // Leaflet entrega UN solo objeto de evento con { tile, coords }
+      tiles.on('tileerror', (e) => {
+        const tile = e && e.tile;
+        const coords = e && e.coords;
+        if (tile && coords && !tile._fallbackDone) {
           tile._fallbackDone = true;
-          const coords = error.coords;
           tile.src = `https://tile.openstreetmap.org/${coords.z}/${coords.x}/${coords.y}.png`;
         }
       });
@@ -84,7 +98,7 @@ class MapManager {
 
       this.markersLayer = window.L.layerGroup().addTo(this.map);
 
-      // Marcador del usuario: Radar táctico con badge 'TÚ' (Stitch Screen 1)
+      // Marcador del usuario: Radar táctico con badge 'TÚ'
       const userIcon = window.L.divIcon({
         className: 'user-radar-icon',
         html: `
@@ -93,7 +107,7 @@ class MapManager {
             <div class="w-6 h-6 rounded-full bg-slate-900 border-2 border-emerald-400 flex items-center justify-center shadow-[0_0_12px_#10b981]">
               <div class="w-2.5 h-2.5 rounded-full bg-emerald-400"></div>
             </div>
-            <span class="mt-1 px-1.5 py-0.2 rounded-full bg-slate-900/90 border border-emerald-500/60 text-[9px] font-black text-emerald-400 tracking-wider shadow">
+            <span class="mt-1 px-1.5 py-0.5 rounded-full bg-slate-900/90 border border-emerald-500/60 text-[9px] font-black text-emerald-400 tracking-wider shadow">
               TÚ
             </span>
           </div>
@@ -101,16 +115,21 @@ class MapManager {
         iconSize: [40, 40],
         iconAnchor: [0, 0]
       });
-      this.userMarker = window.L.marker([lat, lng], { icon: userIcon }).addTo(this.map);
+      this.userMarker = window.L.marker([lat, lng], { icon: userIcon, interactive: false }).addTo(this.map);
 
-      if (navigator.geolocation) {
+      // La geolocalización se pide UNA vez por sesión (no cada vez que vuelves al mapa)
+      if (navigator.geolocation && !store.locationRequested) {
+        store.locationRequested = true;
         navigator.geolocation.getCurrentPosition(
           (pos) => {
             const uLat = pos.coords.latitude;
             const uLng = pos.coords.longitude;
-            store.userLocation = { lat: uLat, lng: uLng, name: "Tu Ubicación Actual" };
+            store.userLocation = { lat: uLat, lng: uLng, name: 'Tu ubicación actual', city: '', country: '' };
             if (this.userMarker) this.userMarker.setLatLng([uLat, uLng]);
-            if (this.map) this.map.setView([uLat, uLng], 15);
+            if (this.map && !this.lastView) this.map.setView([uLat, uLng], 15);
+            reverseGeocode(uLat, uLng).then(info => {
+              if (info) store.userLocation = { ...store.userLocation, city: info.city, country: info.country };
+            });
           },
           () => {},
           { enableHighAccuracy: true, timeout: 4000 }
@@ -139,7 +158,7 @@ class MapManager {
     wcs.forEach(wc => {
       const semantic = getSemanticStatus(wc);
       const isTopWC = wc.score >= 90 && wc.score === maxScore;
-      
+
       let badgeColor = '#10b981'; // esmeralda
       let bgStyle = 'linear-gradient(135deg, #059669, #10b981)';
       let shadowGlow = 'rgba(16, 185, 129, 0.4)';
@@ -160,8 +179,7 @@ class MapManager {
         shadowGlow = 'rgba(168, 85, 247, 0.4)';
       }
 
-      const isLegendary = wc.rarity === 'LEGENDARY' || wc.rarity === 'MYTHIC';
-      const labelText = wc.is_secret ? '🔐' : `${wc.score}`;
+      const labelText = wc.is_secret ? '🔐' : `${esc(wc.score)}`;
 
       const markerHtml = `
         <div class="relative cursor-pointer group select-none" style="transform: translate(-50%, -50%);">
@@ -173,7 +191,7 @@ class MapManager {
               ${labelText}
             </div>
             <span class="ml-1.5 text-[11px] font-extrabold text-white max-w-[85px] truncate">
-              ${wc.name}
+              ${esc(wc.name)}
             </span>
           </div>
         </div>
@@ -207,7 +225,7 @@ class MapManager {
 
   invalidate() {
     if (this.map) {
-      setTimeout(() => this.map.invalidateSize(), 200);
+      setTimeout(() => { if (this.map) this.map.invalidateSize(); }, 200);
     }
   }
 }

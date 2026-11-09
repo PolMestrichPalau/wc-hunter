@@ -2,7 +2,7 @@
 <html lang="es" class="dark">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <meta name="theme-color" content="#080c14">
   <meta name="description" content="WC Hunter — No busques un WC. Busca un WC que quieras usar. La mayor base de datos colaborativa y gamificada de WC reales.">
   <title>WC HUNTER — Encuentra, Valora, Caza</title>
@@ -12,18 +12,12 @@
   <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🚽</text></svg>">
 
   <script>
-    // Limpieza activa de Service Workers antiguos y cachés congeladas
+    // Service Worker (network-first: siempre intenta la red y solo usa caché sin conexión)
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.getRegistrations().then(function(regs) {
-        for (let r of regs) r.unregister();
+      window.addEventListener('load', function() {
+        navigator.serviceWorker.register('sw.js').catch(function() {});
       });
     }
-    if ('caches' in window) {
-      caches.keys().then(function(names) {
-        for (let n of names) caches.delete(n);
-      });
-    }
-    try { localStorage.removeItem('wc_hunter_state_v1'); } catch(e) {}
   </script>
 
   <!-- Fonts: Plus Jakarta Sans -->
@@ -87,14 +81,14 @@
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script>
     if (!window.L) {
-      document.write('<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"><\\/script>');
+      document.write('<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"><\/script>');
     }
   </script>
 
   <!-- Custom CSS -->
-  <link rel="stylesheet" href="css/main.css?v=4.1">
+  <link rel="stylesheet" href="css/main.css?v=5.0">
 </head>
-<body class="bg-slate-950 select-none">
+<body class="bg-slate-950">
 
   <!-- Layout Principal Adaptativo (Desktop Dual-Pane + Mobile Fullscreen) -->
   <div id="app-layout">
@@ -219,7 +213,7 @@
   </div>
 
   <!-- Orquestador Modular JS -->
-  <script type="module" src="js/app.js?v=4.1"></script>
+  <script type="module" src="js/app.js?v=5.0"></script>
 
   <script>
     // Captura global de errores con mensaje claro si ocurre algún fallo

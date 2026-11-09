@@ -3,9 +3,26 @@
  */
 import { store } from '../state.js';
 import { TOP_HUNTERS_LEADERBOARD } from '../seedData.js';
+import { esc } from '../utils.js';
 
 let activeRankingTab = 'wcs';
 let wcFilter = 'best';
+
+/** Ranking de Hunters: la comunidad de ejemplo + TU progreso real, ordenado por XP */
+function buildLeaderboard() {
+  const u = store.user;
+  const me = {
+    name: `${u.username} (Tú)`,
+    title: u.title,
+    xp: u.xp,
+    discovered: u.stats.discovered_count,
+    verifs: u.stats.verifications_count,
+    rep: u.reputation,
+    city: (u.visited_cities && u.visited_cities.length) ? u.visited_cities[u.visited_cities.length - 1] : 'Madrid',
+    isMe: true
+  };
+  return [...TOP_HUNTERS_LEADERBOARD, me].sort((a, b) => b.xp - a.xp);
+}
 
 export function renderRankingView(container) {
   const wcs = [...store.wcs];
@@ -16,7 +33,7 @@ export function renderRankingView(container) {
   } else if (wcFilter === 'cleanest') {
     sortedWcs.sort((a, b) => (b.score_breakdown?.cleanliness || 0) - (a.score_breakdown?.cleanliness || 0));
   } else if (wcFilter === 'free') {
-    sortedWcs = sortedWcs.filter(w => w.access_type === 'free' || w.price === 0);
+    sortedWcs = sortedWcs.filter(w => w.access_type === 'free');
     sortedWcs.sort((a, b) => b.score - a.score);
   } else if (wcFilter === 'secrets') {
     sortedWcs = sortedWcs.filter(w => w.is_secret);
@@ -70,17 +87,17 @@ export function renderRankingView(container) {
           sortedWcs.map((wc, idx) => {
             const medal = idx === 0 ? '🥇' : (idx === 1 ? '🥈' : (idx === 2 ? '🥉' : `#${idx + 1}`));
             return `
-              <div class="bg-surface-container/90 border border-white/10 hover:border-emerald-500/40 rounded-3xl p-4 flex items-center justify-between gap-3 shadow-lg transition cursor-pointer rank-wc-card active:scale-[0.99]" data-wc-id="${wc.id}">
+              <div class="bg-surface-container/90 border border-white/10 hover:border-emerald-500/40 rounded-3xl p-4 flex items-center justify-between gap-3 shadow-lg transition cursor-pointer rank-wc-card active:scale-[0.99]" data-wc-id="${esc(wc.id)}">
                 <div class="flex items-center gap-3.5 min-w-0">
                   <span class="text-xl font-black text-amber-400 w-8 text-center flex-shrink-0">${medal}</span>
                   <div class="min-w-0">
                     <div class="flex items-center gap-1.5 mb-1 flex-wrap">
-                      <span class="rarity-pill ${wc.rarity}">${wc.rarity}</span>
+                      <span class="rarity-pill ${esc(wc.rarity)}">${esc(wc.rarity)}</span>
                       ${wc.is_secret ? `<span class="text-[10px] font-black bg-purple-950 text-purple-300 px-1.5 py-0.5 rounded-full">🔐</span>` : ''}
-                      <span class="text-xs text-slate-400 font-semibold truncate">${wc.city}</span>
+                      <span class="text-xs text-slate-400 font-semibold truncate">${esc(wc.city)}${wc.country ? `, ${esc(wc.country)}` : ''}</span>
                     </div>
-                    <h3 class="text-sm font-extrabold text-white truncate">${wc.name}</h3>
-                    <p class="text-xs text-amber-300/90 font-medium truncate mt-0.5">${wc.access_label}</p>
+                    <h3 class="text-sm font-extrabold text-white truncate">${esc(wc.name)}</h3>
+                    <p class="text-xs text-amber-300/90 font-medium truncate mt-0.5">${esc(wc.access_label)}</p>
                   </div>
                 </div>
 
@@ -94,19 +111,19 @@ export function renderRankingView(container) {
             `;
           }).join('')
         ) : (
-          TOP_HUNTERS_LEADERBOARD.map((hunter, idx) => {
+          buildLeaderboard().map((hunter, idx) => {
             const medal = idx === 0 ? '🥇' : (idx === 1 ? '🥈' : (idx === 2 ? '🥉' : `#${idx + 1}`));
-            const isMe = hunter.name.includes('(Tú)');
+            const isMe = Boolean(hunter.isMe);
             return `
               <div class="bg-slate-900/90 border ${isMe ? 'border-amber-500/80 bg-amber-950/20' : 'border-slate-800'} rounded-2xl p-4 flex items-center justify-between gap-3 shadow">
                 <div class="flex items-center gap-3.5 min-w-0">
                   <span class="text-xl font-black text-amber-400 w-8 text-center flex-shrink-0">${medal}</span>
                   <div class="min-w-0">
                     <div class="flex items-center gap-2">
-                      <h3 class="text-sm font-black ${isMe ? 'text-amber-300' : 'text-white'} truncate">${hunter.name}</h3>
-                      <span class="text-[10px] text-slate-400 font-bold bg-slate-800 px-2 py-0.5 rounded-lg">${hunter.city}</span>
+                      <h3 class="text-sm font-black ${isMe ? 'text-amber-300' : 'text-white'} truncate">${esc(hunter.name)}</h3>
+                      <span class="text-[10px] text-slate-400 font-bold bg-slate-800 px-2 py-0.5 rounded-lg capitalize">${esc(hunter.city)}</span>
                     </div>
-                    <p class="text-xs text-amber-400 font-bold truncate mt-0.5">${hunter.title}</p>
+                    <p class="text-xs text-amber-400 font-bold truncate mt-0.5">${esc(hunter.title)}</p>
                     <div class="flex items-center gap-2 text-[11px] text-slate-400 font-medium mt-1">
                       <span>🔎 ${hunter.discovered} descubiertos</span>
                       <span>·</span>

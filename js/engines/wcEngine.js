@@ -70,8 +70,11 @@ export function getScoreRatingText(score) {
  * Calcula el Confidence Score (0 - 100%)
  */
 export function calculateConfidence(wc, verifications = []) {
-  const verifCount = verifications.length || (wc.reviews_count ? Math.min(10, Math.floor(wc.reviews_count / 2)) : 1);
-  
+  // El numero de verificaciones nunca baja por verificar de nuevo: se toma el mayor entre
+  // el historico acumulado del WC y los reportes recientes recibidos.
+  const verifCount = Math.max(verifications.length, wc.verified_by_count || 0) ||
+    (wc.reviews_count ? Math.min(10, Math.floor(wc.reviews_count / 2)) : 1);
+
   let baseScore = 40;
   if (verifCount >= 10) baseScore = 95;
   else if (verifCount >= 4) baseScore = 85;
@@ -181,17 +184,48 @@ export function getSemanticStatus(wc) {
  * Métrica "¿Volvería?" humanizada
  */
 export function formatWouldReturn(ratio) {
-  const yes = ratio?.yes || 1;
-  const no = ratio?.no || 0;
+  const yes = Number(ratio?.yes) || 0;
+  const no = Number(ratio?.no) || 0;
   const total = yes + no;
-  const percent = Math.round((yes / total) * 100);
+  const percent = total > 0 ? Math.round((yes / total) * 100) : 0;
   return {
     percent,
     yesCount: yes,
     noCount: no,
     total,
-    sentence: `${percent}% de los Hunters repetirían`
+    sentence: total > 0 ? `${percent}% de los Hunters repetirían` : 'Aún sin votos de "volvería"'
   };
+}
+
+/**
+ * Etiqueta corta de acceso/precio para listas (cubre todos los tipos de acceso)
+ */
+export function formatAccessShort(wc) {
+  switch (wc.access_type) {
+    case 'free': return '🆓 Gratis';
+    case 'customers_only': return '🍔 Solo clientes';
+    case 'key_required': return '🔑 Pedir llave';
+    case 'code_required': return '🔢 Código en ticket';
+    default: return `💰 ${(Number(wc.price) || 0).toFixed(2)} €`;
+  }
+}
+
+/**
+ * Distancia legible: metros < 1 km, km con decimales; sin decimales a partir de 100 km.
+ */
+export function formatDistance(meters) {
+  if (!Number.isFinite(meters)) return '—';
+  if (meters < 1000) return `${meters} m`;
+  const km = meters / 1000;
+  return km >= 100 ? `${Math.round(km).toLocaleString('es-ES')} km` : `${km.toFixed(1)} km`;
+}
+
+/**
+ * Tiempo a pie, solo tiene sentido en distancias caminables (<= 3 km)
+ */
+export function formatWalkTime(meters) {
+  if (!Number.isFinite(meters) || meters > 3000) return '';
+  return `~${Math.max(1, Math.round(meters / 80))} min`;
 }
 
 /**

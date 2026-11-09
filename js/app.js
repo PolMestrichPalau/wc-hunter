@@ -2,6 +2,8 @@
  * WC HUNTER — Orquestador de la Aplicación V2.0
  */
 import { store } from './state.js';
+import { mapManager } from './map.js';
+import { esc } from './utils.js';
 import { renderMapView } from './views/mapView.js';
 import { renderNearView } from './views/nearView.js';
 import { renderRankingView } from './views/rankingView.js';
@@ -18,8 +20,7 @@ class App {
     this.toastContainer = document.getElementById('toast-container');
     this.navButtons = document.querySelectorAll('.nav-tab-btn, .sidebar-link');
 
-    this.audioCtx = null;
-    this.initAudio();
+    this.audioCtx = null; // se crea de forma perezosa tras el primer gesto del usuario
     this.bindEvents();
     this.subscribeToStore();
     this.updateSidebarUserCard();
@@ -36,6 +37,7 @@ class App {
   }
 
   playSound(type = 'click') {
+    if (!this.audioCtx) this.initAudio();
     if (!this.audioCtx) return;
     if (this.audioCtx.state === 'suspended') {
       this.audioCtx.resume();
@@ -95,6 +97,22 @@ class App {
         store.setTab('profile');
       });
     }
+
+    // Accesibilidad: Esc cierra el modal abierto
+    document.addEventListener('keydown', (e) => {
+      if (e.key !== 'Escape') return;
+      if (store.isAddModalOpen) store.closeAddModal();
+      else if (store.selectedWc) store.closeWcDetail();
+    });
+  }
+
+  /** Refresca la vista actual tras cambios de datos sin destruir el mapa Leaflet */
+  refreshCurrentView() {
+    if (store.currentTab === 'map') {
+      mapManager.renderMarkers();
+    } else {
+      this.renderCurrentView();
+    }
   }
 
   subscribeToStore() {
@@ -102,19 +120,25 @@ class App {
       if (event === 'TAB_CHANGED') {
         this.updateNavTabs(payload);
         this.renderCurrentView();
-      } else if (event === 'WC_SELECTED' || event === 'WC_DESELECTED' || event === 'WC_VERIFIED') {
+      } else if (event === 'WC_SELECTED') {
         renderWcDetailModal(this.modalContainer);
-      } else if (event === 'ADD_MODAL_OPEN' || event === 'ADD_MODAL_CLOSE' || event === 'WC_CREATED') {
+      } else if (event === 'WC_DESELECTED') {
+        renderWcDetailModal(this.modalContainer);
+        this.refreshCurrentView(); // los datos pudieron cambiar mientras la ficha estaba abierta
+      } else if (event === 'WC_VERIFIED') {
+        renderWcDetailModal(this.modalContainer);
+        if (store.currentTab === 'map') mapManager.renderMarkers();
+      } else if (event === 'ADD_MODAL_OPEN' || event === 'ADD_MODAL_CLOSE') {
         renderAddWcModal(this.addModalContainer);
+      } else if (event === 'WC_CREATED') {
+        renderAddWcModal(this.addModalContainer);
+        if (store.currentTab === 'map') mapManager.renderMarkers();
       } else if (event === 'XP_EARNED') {
         // BUG-02: NO llamar renderCurrentView() aquí — destruye el mapa Leaflet
         this.playSound('xp');
         this.updateSidebarUserCard();
       } else if (event === 'ACHIEVEMENT_UNLOCKED') {
         this.playSound('achievement');
-      } else if (event === 'EMERGENCY_TOGGLED') {
-        if (payload) this.playSound('emergency');
-        this.renderCurrentView();
       } else if (event === 'TOAST_ADDED' || event === 'TOAST_REMOVED') {
         this.renderToasts();
       } else if (event === 'USER_UPDATED') {
@@ -143,6 +167,7 @@ class App {
     const streakEl = document.getElementById('sidebar-streak');
 
     if (avatarEl) avatarEl.textContent = user.avatar;
+    // (textContent: seguro frente a XSS)
     if (userEl) userEl.textContent = user.username;
     if (titleEl) titleEl.textContent = user.title;
     if (streakEl) streakEl.textContent = `🔥 ${user.streak_days}d`;
@@ -150,6 +175,7 @@ class App {
 
   renderCurrentView() {
     this.updateNavTabs(store.currentTab);
+    if (store.currentTab !== 'map') mapManager.destroy(); // guarda la vista del mapa y libera Leaflet
 
     switch (store.currentTab) {
       case 'map':
@@ -186,7 +212,7 @@ class App {
       return `
         <div class="toast ${extraClass}">
           <span class="text-base">${icon}</span>
-          <span style="white-space: pre-line;">${t.message}</span>
+          <span style="white-space: pre-line;">${esc(t.message)}</span>
         </div>
       `;
     }).join('');
@@ -207,7 +233,7 @@ function bootApp() {
           <div style="font-size:48px;margin-bottom:12px;">🚽</div>
           <h2 style="font-size:18px;font-weight:900;margin-bottom:8px;">WC HUNTER</h2>
           <p style="font-size:12px;color:#94a3b8;margin-bottom:16px;">Ocurrió un error al cargar la vista. Pulsa para reintentar:</p>
-          <button onclick="window.location.reload(true)" style="background:#f59e0b;color:#000;font-weight:800;font-size:13px;padding:10px 20px;border-radius:12px;border:none;cursor:pointer;">
+          <button onclick="window.location.reload()" style="background:#f59e0b;color:#000;font-weight:800;font-size:13px;padding:10px 20px;border-radius:12px;border:none;cursor:pointer;">
             🔄 Recargar App
           </button>
         </div>

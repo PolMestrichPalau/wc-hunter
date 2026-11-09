@@ -4,7 +4,8 @@
  */
 import { store } from '../state.js';
 import { mapManager } from '../map.js';
-import { getSemanticStatus, formatWouldReturn } from '../engines/wcEngine.js';
+import { getSemanticStatus, formatWouldReturn, calculateDistanceMeters, formatDistance, formatWalkTime } from '../engines/wcEngine.js';
+import { esc } from '../utils.js';
 
 let previewWc = null;
 
@@ -23,20 +24,19 @@ export function renderMapView(container) {
               id="map-search-input"
               type="text"
               placeholder="Buscar baños, zonas o calles..."
-              value="${store.searchQuery}"
+              value="${esc(store.searchQuery)}"
+              maxlength="80"
               class="w-full bg-transparent text-xs sm:text-sm font-semibold text-slate-100 placeholder-slate-400 focus:outline-none"
             />
-            ${store.searchQuery ? `
-              <button id="clear-search-btn" class="text-slate-400 hover:text-white p-1 font-bold text-xs">✕</button>
-            ` : ''}
+            <button id="clear-search-btn" class="text-slate-400 hover:text-white p-1 font-bold text-xs ${store.searchQuery ? '' : 'hidden'}" aria-label="Borrar búsqueda">✕</button>
           </div>
           <button
             id="map-add-wc-btn"
             class="tactile-amber-btn bg-gradient-to-r from-amber-500 to-yellow-400 hover:from-amber-400 text-slate-950 font-black text-xs px-3.5 py-3 rounded-2xl shadow-xl flex items-center gap-1.5 pointer-events-auto flex-shrink-0"
-            title="Descubrir Nuevo WC (+50 XP)"
+            title="Descubrir Nuevo WC (+100 XP)"
           >
             <span class="text-sm">➕</span>
-            <span class="hidden sm:inline font-black">Nuevo (+50 XP)</span>
+            <span class="hidden sm:inline font-black">Nuevo (+100 XP)</span>
           </button>
         </div>
 
@@ -89,6 +89,8 @@ export function renderMapView(container) {
   if (searchInput) {
     searchInput.addEventListener('input', (e) => {
       store.setSearchQuery(e.target.value);
+      const cb = container.querySelector('#clear-search-btn');
+      if (cb) cb.classList.toggle('hidden', !store.searchQuery);
       mapManager.renderMarkers();
     });
   }
@@ -97,8 +99,9 @@ export function renderMapView(container) {
   if (clearBtn) {
     clearBtn.addEventListener('click', () => {
       store.setSearchQuery('');
+      if (searchInput) searchInput.value = '';
+      clearBtn.classList.add('hidden');
       mapManager.renderMarkers();
-      renderMapView(container);
     });
   }
 
@@ -109,8 +112,9 @@ export function renderMapView(container) {
       const f = chip.getAttribute('data-filter');
       store.setIntentFilter(f === 'any' ? null : f);
       mapManager.renderMarkers();
-      filterChips.forEach(c => c.classList.remove('active'));
-      chip.classList.add('active');
+      // El estado visual refleja siempre el filtro real del store
+      const active = store.intentFilter || 'any';
+      filterChips.forEach(c => c.classList.toggle('active', c.getAttribute('data-filter') === active));
     });
   });
 
@@ -157,21 +161,23 @@ export function renderMapView(container) {
 function renderPreviewCardHtml(wc) {
   const semantic = getSemanticStatus(wc);
   const wouldRet = formatWouldReturn(wc.would_return_ratio);
-  const b = wc.score_breakdown || { cleanliness: 90, privacy: 85 };
+  const uLoc = store.userLocation;
+  const meters = calculateDistanceMeters(uLoc.lat, uLoc.lng, wc.latitude, wc.longitude);
+  const distLabel = [formatDistance(meters), formatWalkTime(meters)].filter(Boolean).join(' · ');
 
   return `
     <div class="bg-slate-900/95 backdrop-blur-xl border border-white/10 rounded-3xl p-4 shadow-2xl flex flex-col gap-3.5 animate-slide-up">
       <div class="flex items-start justify-between gap-3">
         <div class="min-w-0 flex-1">
           <div class="flex items-center gap-2 mb-1 flex-wrap">
-            <span class="rarity-pill ${wc.rarity}">${wc.rarity}</span>
+            <span class="rarity-pill ${esc(wc.rarity)}">${esc(wc.rarity)}</span>
             <span class="text-[11px] font-bold text-cyan-400 bg-cyan-950/60 border border-cyan-500/30 px-2 py-0.5 rounded-full flex items-center gap-1">
-              <span>📍</span> <span>140 m · 2 min</span>
+              <span>📍</span> <span>${esc(distLabel)}</span>
             </span>
             ${wc.is_secret ? `<span class="text-[10px] font-black bg-purple-950 text-purple-300 px-2 py-0.5 rounded-full border border-purple-500/40">🔐 SECRETO</span>` : ''}
           </div>
-          <h3 class="text-base font-extrabold text-white truncate leading-snug">${wc.name}</h3>
-          <p class="text-xs text-slate-400 truncate mt-0.5">${wc.address}, ${wc.city}</p>
+          <h3 class="text-base font-extrabold text-white truncate leading-snug">${esc(wc.name)}</h3>
+          <p class="text-xs text-slate-400 truncate mt-0.5">${esc(wc.address)}, ${esc(wc.city)}</p>
         </div>
 
         <div class="flex flex-col items-center flex-shrink-0">
@@ -193,7 +199,7 @@ function renderPreviewCardHtml(wc) {
         <div class="flex flex-col items-center text-center border-x border-slate-800">
           <span class="text-[9px] uppercase tracking-wider text-slate-400 font-extrabold">ACCESO</span>
           <span class="font-extrabold text-amber-300 mt-0.5 truncate max-w-full px-1">
-            ${wc.access_label}
+            ${esc(wc.access_label)}
           </span>
         </div>
         <div class="flex flex-col items-center text-center">

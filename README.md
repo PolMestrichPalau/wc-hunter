@@ -22,6 +22,17 @@
 
 ---
 
+## 🛡️ Calidad y antifraude (v5.0)
+
+* Todo texto introducido por usuarios se escapa antes de pintarse (`js/utils.js`), sin XSS.
+* Verificación: 1 por WC cada 3 h. Descubrimientos: máx. 3/día con XP.
+* Alta de WC con selector de ubicación en mapa, país real y autorrelleno de ciudad/dirección (OpenStreetMap Nominatim).
+* Estado local versionado y con copia de seguridad (`wc_hunter_state_v2_backup`) si se corrompe.
+* PWA con service worker *network-first* e iconos. (Tailwind/Leaflet vienen de CDN: sin conexión la interfaz puede verse sin estilos.)
+* Pruebas: `powershell -ExecutionPolicy Bypass -File tests\verify.ps1` (requiere Node.js para las pruebas de lógica).
+
+---
+
 ## 🚀 Despliegue y Ejecución Local
 
 ### Ejecutar Localmente

@@ -578,3 +578,7 @@ body {
   -ms-overflow-style: none;
   scrollbar-width: none;
 }
+
+/* Los campos de formulario siempre deben poder seleccionarse/editarse (iOS Safari) */
+input, textarea, select { -webkit-user-select: text; user-select: text; }
+

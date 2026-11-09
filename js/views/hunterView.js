@@ -4,12 +4,19 @@
  */
 import { store } from '../state.js';
 import { calculateLevel } from '../engines/gameEngine.js';
-import { UPCOMING_ACHIEVEMENTS, COLLECTION_CATEGORIES, ACHIEVEMENTS_CATALOG } from '../seedData.js';
+import { ACHIEVEMENTS_CATALOG } from '../seedData.js';
+import { computeCollections, computeUpcomingAchievements } from '../engines/userEngine.js';
+import { esc } from '../utils.js';
 
 export function renderHunterView(container) {
   const user = store.user;
   const levelInfo = calculateLevel(user.xp);
   const unlockedAchIds = user.unlocked_achievements || [];
+  const collections = computeCollections(store.wcs, user);
+  const collectedTotal = collections.reduce((s, c) => s + c.collected, 0);
+  const catalogTotal = collections.reduce((s, c) => s + c.total, 0);
+  const upcoming = computeUpcomingAchievements(user, 4);
+  const missions = store.missions || [];
 
   container.innerHTML = `
     <div class="w-full h-full flex flex-col bg-slate-950 text-slate-100 overflow-y-auto pb-24 md:pb-8">
@@ -37,16 +44,16 @@ export function renderHunterView(container) {
           <div class="flex items-center justify-between">
             <div class="flex items-center gap-3">
               <div class="w-14 h-14 rounded-2xl bg-gradient-to-tr from-emerald-500/20 to-secondary/20 border-2 border-emerald-400 flex items-center justify-center text-3xl shadow-lg shadow-emerald-500/20">
-                ${user.avatar}
+                ${esc(user.avatar)}
               </div>
               <div>
                 <div class="flex items-center gap-2">
                   <h2 class="text-lg font-black text-white">NIVEL ${levelInfo.level}</h2>
                   <span class="text-xs font-black text-emerald-400 bg-emerald-950/60 px-2 py-0.5 rounded-lg border border-emerald-500/40">
-                    ${levelInfo.rank}
+                    ${esc(levelInfo.rank)}
                   </span>
                 </div>
-                <p class="text-xs font-bold text-slate-400 mt-0.5">${user.title}</p>
+                <p class="text-xs font-bold text-slate-400 mt-0.5">${esc(user.title)}</p>
               </div>
             </div>
 
@@ -80,31 +87,45 @@ export function renderHunterView(container) {
             <span class="text-xs text-amber-400 font-bold">En curso</span>
           </div>
 
+          <!-- Misiones activas (progreso real) -->
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-            ${UPCOMING_ACHIEVEMENTS.map(ach => `
-              <div class="bg-surface-container-high/70 border ${ach.completed ? 'border-amber-500/60 bg-amber-950/20' : 'border-white/5'} rounded-2xl p-3 flex items-center justify-between gap-2 shadow-sm">
+            ${missions.map(m => `
+              <div class="bg-surface-container-high/70 border ${m.completed ? 'border-emerald-500/50 bg-emerald-950/20' : 'border-white/5'} rounded-2xl p-3 flex flex-col gap-2 shadow-sm">
+                <div class="flex items-center justify-between gap-2">
+                  <h4 class="text-xs font-black text-white truncate">🎯 ${esc(m.title)}</h4>
+                  <span class="text-[10px] font-black ${m.completed ? 'text-emerald-400' : 'text-amber-400'} flex-shrink-0">
+                    ${m.completed ? '✓ HECHA' : `+${esc(m.xp_reward)} XP`}
+                  </span>
+                </div>
+                <p class="text-[11px] text-slate-400">${esc(m.description)}</p>
+                <div class="w-full h-1.5 bg-slate-950 rounded-full overflow-hidden">
+                  <div class="h-full bg-emerald-500 rounded-full" style="width: ${Math.min(100, (m.progress / m.target) * 100)}%"></div>
+                </div>
+                <span class="text-[10px] font-bold text-slate-400">${esc(m.progress)} / ${esc(m.target)}</span>
+              </div>
+            `).join('')}
+          </div>
+
+          <!-- Próximos logros por desbloquear -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+            ${upcoming.map(ach => `
+              <div class="bg-surface-container-high/70 border border-white/5 rounded-2xl p-3 flex items-center justify-between gap-2 shadow-sm">
                 <div class="flex items-center gap-2.5 min-w-0">
-                  <span class="text-2xl">${ach.icon}</span>
+                  <span class="text-2xl">${esc(ach.icon)}</span>
                   <div class="min-w-0">
-                    <h4 class="text-xs font-black text-white truncate">${ach.name}</h4>
-                    <span class="text-[11px] font-bold ${ach.completed ? 'text-amber-400' : 'text-slate-400'}">
-                      Progreso: ${ach.progress}
+                    <h4 class="text-xs font-black text-white truncate">${esc(ach.name)}</h4>
+                    <span class="text-[11px] font-bold text-slate-400">
+                      Progreso: ${esc(ach.current)}/${esc(ach.target)}
                     </span>
                   </div>
                 </div>
-                ${ach.completed ? `
-                  <button class="tactile-amber-btn bg-gradient-to-r from-amber-500 to-yellow-400 hover:from-amber-400 text-slate-950 text-[11px] font-black px-3 py-1.5 rounded-xl shadow transition claim-ach-btn" data-ach-id="${ach.id}">
-                    ¡Reclamar!
-                  </button>
-                ` : `
-                  <span class="text-xs text-slate-500 font-bold">⏳</span>
-                `}
+                <span class="text-xs text-slate-500 font-bold">⏳ +${esc(ach.xp)} XP</span>
               </div>
             `).join('')}
           </div>
         </div>
 
-        <!-- 3. 🗃️ MI COLECCIÓN PERSONAL (42 / 120) -->
+        <!-- 3. 🗃️ MI COLECCIÓN PERSONAL (progreso real) -->
         <div class="bg-slate-900/80 border border-slate-800 rounded-3xl p-5 flex flex-col gap-3 shadow-md">
           <div class="flex items-center justify-between">
             <div>
@@ -115,22 +136,22 @@ export function renderHunterView(container) {
               <p class="text-xs text-slate-400 mt-0.5">Colecciona WCs únicos por todo el mundo</p>
             </div>
             <div class="text-right">
-              <span class="text-base font-black text-amber-400 leading-none">42 / 120</span>
+              <span class="text-base font-black text-amber-400 leading-none">${collectedTotal} / ${catalogTotal}</span>
               <span class="block text-[10px] text-slate-500 font-bold uppercase">TOTAL</span>
             </div>
           </div>
 
           <!-- Parrilla de Categorías de Colección -->
           <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5 mt-1">
-            ${COLLECTION_CATEGORIES.map(cat => `
+            ${collections.map(cat => `
               <div class="bg-slate-800/70 border border-slate-700/60 rounded-2xl p-3.5 flex flex-col gap-2">
                 <div class="flex items-center justify-between">
-                  <span class="text-xl">${cat.icon}</span>
+                  <span class="text-xl">${esc(cat.icon)}</span>
                   <span class="text-xs font-black text-amber-400">${cat.collected}/${cat.total}</span>
                 </div>
-                <h4 class="text-xs font-black text-white truncate">${cat.name}</h4>
+                <h4 class="text-xs font-black text-white truncate">${esc(cat.name)}</h4>
                 <div class="w-full h-1.5 bg-slate-950 rounded-full overflow-hidden">
-                  <div class="h-full bg-amber-500 rounded-full" style="width: ${(cat.collected / cat.total) * 100}%"></div>
+                  <div class="h-full bg-amber-500 rounded-full" style="width: ${cat.total ? (cat.collected / cat.total) * 100 : 0}%"></div>
                 </div>
               </div>
             `).join('')}
@@ -184,13 +205,4 @@ export function renderHunterView(container) {
     </div>
   `;
 
-  // Attach event listener for claiming achievements
-  const claimBtns = container.querySelectorAll('.claim-ach-btn');
-  claimBtns.forEach(btn => {
-    btn.addEventListener('click', () => {
-      const achId = btn.getAttribute('data-ach-id');
-      store.checkAchievement(achId);
-      renderHunterView(container);
-    });
-  });
 }
