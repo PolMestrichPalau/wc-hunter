@@ -30,6 +30,16 @@ export async function resizeImage(file, maxSide = 1280, quality = 0.8) {
   return new Promise((resolve, reject) => canvas.toBlob(b => (b ? resolve(b) : reject(new Error('resize_failed'))), 'image/jpeg', quality));
 }
 
+/**
+ * Versiones para subir (diseñadas para el plan gratuito de almacenamiento y tráfico):
+ *  - full: 960 px, calidad 0.7  (~100 KB)
+ *  - thumb: 320 px, calidad 0.6 (~15 KB), la que se muestra en listas y fichas
+ */
+export async function makePhotoVersions(file) {
+  const [full, thumb] = await Promise.all([resizeImage(file, 960, 0.7), resizeImage(file, 320, 0.6)]);
+  return { full, thumb };
+}
+
 /** Devuelve la URL solo si es http(s); si no, cadena vacía (evita javascript:). */
 export function safeUrl(url) {
   try {

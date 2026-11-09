@@ -5,7 +5,7 @@
  */
 import { store } from '../state.js';
 import { backend } from '../backend.js';
-import { esc, resizeImage } from '../utils.js';
+import { esc, makePhotoVersions } from '../utils.js';
 import { reverseGeocode } from '../geo.js';
 import { calculateDistanceMeters, formatDistance } from '../engines/wcEngine.js';
 
@@ -273,8 +273,8 @@ function bind(container) {
 
 async function maybeUploadPhoto() {
   if (!(store.remote && S.photo)) return null;
-  const blob = await resizeImage(S.photo);
-  return backend.uploadPhoto(blob);
+  const { full, thumb } = await makePhotoVersions(S.photo);
+  return backend.uploadPhoto(full, thumb);
 }
 
 const CLEAN = { 5: 'clean', 3: 'normal', 1: 'dirty' };

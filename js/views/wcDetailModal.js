@@ -309,10 +309,18 @@ export function renderWcDetailModal(container) {
     backend.wcPhotos(wc.id).then(list => {
       const box = container.querySelector('#detail-photos');
       if (!box || store.selectedWc?.id !== wc.id || !list.length) return;
+      // Se muestra la miniatura (~15 KB); la foto completa solo se descarga si se toca
       box.innerHTML = list.map(p => {
-        const url = safeUrl(p.url);
-        return url ? `<img src="${esc(url)}" alt="Foto de ${esc(p.username)}" loading="lazy" referrerpolicy="no-referrer" class="h-28 rounded-2xl border border-white/10 object-cover flex-shrink-0" />` : '';
+        const full = safeUrl(p.url);
+        const thumb = safeUrl(p.thumb) || full;
+        return full ? `<a href="${esc(full)}" target="_blank" rel="noopener" class="flex-shrink-0"><img src="${esc(thumb)}" data-full="${esc(full)}" alt="Foto de ${esc(p.username)}" loading="lazy" referrerpolicy="no-referrer" class="h-28 rounded-2xl border border-white/10 object-cover" /></a>` : '';
       }).join('');
+      // Si falta la miniatura (foto antigua), se cae a la foto completa. Sin handlers en línea.
+      box.querySelectorAll('img[data-full]').forEach(img => {
+        img.addEventListener('error', () => {
+          if (img.dataset.fallback !== '1') { img.dataset.fallback = '1'; img.src = img.dataset.full; }
+        });
+      });
     }).catch(() => {});
 
     container.querySelector('#detail-report-btn')?.addEventListener('click', async () => {

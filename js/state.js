@@ -77,7 +77,10 @@ class Store {
     if (!this.remote) return false;
     try {
       if (!(await backend.init())) throw backend.error || new Error('init_failed');
-      this.applyRemoteProfile(await backend.myProfile());
+      // Sin sesión previa => "Visitante": puede mirar todo, y la cuenta se crea al primer check-in
+      const profile = await backend.myProfile();
+      if (profile) this.applyRemoteProfile(profile);
+      else Object.assign(this.user, { username: 'Visitante', title: '👀 Explorador' });
       this.remoteReady = true;
       this.notify('REMOTE_READY', this.user);
       return true;

@@ -248,7 +248,10 @@ begin
   if p_status = 'open' and (p_rating is null or p_rating not between 1 and 5) then raise exception 'bad_rating'; end if;
   if p_rating is not null and p_rating not between 1 and 5 then raise exception 'bad_rating'; end if;
   if p_lat is null or p_lng is null then raise exception 'location_required'; end if;
-  if p_photo_path is not null and p_photo_path not like v_uid::text || '/%' then raise exception 'bad_photo_path'; end if;
+  -- Formato estricto <uid>/<uuid>.jpg (evita rutas arbitrarias o con caracteres peligrosos)
+  if p_photo_path is not null and p_photo_path !~ ('^' || v_uid::text || '/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\.jpg$') then
+    raise exception 'bad_photo_path';
+  end if;
 
   select * into v_wc from public.wcs where id = p_wc_id and not hidden;
   if not found then raise exception 'wc_not_found'; end if;

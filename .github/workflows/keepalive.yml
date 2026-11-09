@@ -1,0 +1,32 @@
+name: Keepalive Supabase
+
+# Los proyectos del plan gratuito de Supabase se pausan tras 1 semana sin actividad.
+# Esta tarea hace una consulta de solo lectura cada 3 días para evitarlo.
+# Si js/config.js está vacío (modo local) no hace nada.
+# Nota: GitHub desactiva las tareas programadas de un repositorio sin actividad en 60 días;
+# si ocurre, reactívala en la pestaña Actions o haz un commit.
+on:
+  schedule:
+    - cron: '17 6 */3 * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Consulta ligera a la API pública
+        run: |
+          URL=$(grep -oP "SUPABASE_URL\s*=\s*'\K[^']+" js/config.js || true)
+          KEY=$(grep -oP "SUPABASE_ANON_KEY\s*=\s*'\K[^']+" js/config.js || true)
+          if [ -z "$URL" ] || [ -z "$KEY" ]; then
+            echo "Supabase no configurado: nada que hacer."
+            exit 0
+          fi
+          curl -fsS -X POST "$URL/rest/v1/rpc/nearby_wcs" \
+            -H "apikey: $KEY" -H "Authorization: Bearer $KEY" -H "Content-Type: application/json" \
+            -d '{"p_lat":41.3874,"p_lng":2.1686,"p_radius_m":500,"p_limit":1}' > /dev/null
+          echo "Ping OK"

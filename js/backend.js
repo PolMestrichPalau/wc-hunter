@@ -24,6 +24,11 @@ const ERRORS = {
   bad_profile: () => 'Nombre no válido (3-24 letras, números, _ . -).'
 };
 
+/** Ruta de la miniatura a partir de la de la foto completa (convención <uuid>.jpg -> <uuid>_t.jpg). */
+export function thumbPath(path) {
+  return String(path || '').replace(/\.jpg$/, '_t.jpg');
+}
+
 /** Traduce el error de Postgres ("too_far:230") a un mensaje en español. */
 export function describeError(err) {
   const raw = String(err?.message || err || '');
@@ -94,7 +99,11 @@ class Backend {
     return Boolean(SUPABASE_URL && SUPABASE_ANON_KEY);
   }
 
-  /** Conecta y asegura una sesión (anónima si hace falta). */
+  /**
+   * Conecta con el servidor SIN abrir sesión: leer el mapa solo necesita la clave pública.
+   * La sesión anónima se crea al primer intento de publicar (ensureSession). Así los
+   * visitantes que solo miran no cuentan como usuarios activos (MAU) en la facturación.
+   */
   async init() {
     if (!this.enabled) return false;
     if (this.client) return true;
@@ -103,11 +112,7 @@ class Backend {
       this.client = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
         auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: false }
       });
-      const { data: { session } } = await this.client.auth.getSession();
-      if (!session) {
-        const { error } = await this.client.auth.signInAnonymously();
-        if (error) throw error;
-      }
+      await this.client.auth.getSession(); // recupera la sesión previa si existe (no crea ninguna)
       return true;
     } catch (e) {
       this.error = e;
@@ -116,15 +121,34 @@ class Backend {
     }
   }
 
-  async rpc(fn, args = {}) {
+  /** ¿Hay ya una sesión guardada en este navegador? */
+  async hasSession() {
+    const { data: { session } } = await this.client.auth.getSession();
+    return Boolean(session);
+  }
+
+  /** Crea la sesión anónima la primera vez que el usuario quiere escribir. */
+  async ensureSession() {
+    if (await this.hasSession()) return;
+    const { error } = await this.client.auth.signInAnonymously();
+    if (error) throw error;
+  }
+
+  async rpc(fn, args = {}, { write = false } = {}) {
+    if (write) await this.ensureSession();
     const { data, error } = await this.client.rpc(fn, args);
     if (error) throw error;
     return data;
   }
 
-  myProfile() { return this.rpc('my_profile'); }
+  /** Perfil propio; null si el visitante aún no tiene sesión (no se crea una solo por mirar). */
+  async myProfile() {
+    if (!(await this.hasSession())) return null;
+    return this.rpc('my_profile');
+  }
+
   setProfile({ username = null, avatar = null, title = null }) {
-    return this.rpc('set_profile', { p_username: username, p_avatar: avatar, p_title: title });
+    return this.rpc('set_profile', { p_username: username, p_avatar: avatar, p_title: title }, { write: true });
   }
 
   async wcsInBounds({ south, west, north, east }, limit = 500) {
@@ -141,7 +165,7 @@ class Backend {
     return this.rpc('check_in', {
       p_wc_id: wcId, p_rating: rating, p_status: status, p_has_paper: hasPaper, p_has_soap: hasSoap,
       p_comment: comment, p_photo_path: photoPath, p_lat: lat, p_lng: lng
-    });
+    }, { write: true });
   }
 
   createWc({ name, lat, lng, userLat, userLng, type = 'other', accessType = 'free', price = 0, isSecret = false, address = null, city = null, country = null, equipment = {}, force = false }) {
@@ -149,14 +173,17 @@ class Backend {
       p_name: name, p_lat: lat, p_lng: lng, p_user_lat: userLat, p_user_lng: userLng, p_type: type,
       p_access_type: accessType, p_price: price, p_is_secret: isSecret, p_address: address, p_city: city,
       p_country: country, p_equipment: equipment, p_force: force
-    });
+    }, { write: true });
   }
 
-  reportWc(wcId, reason = null) { return this.rpc('report_wc', { p_wc_id: wcId, p_reason: reason }); }
+  reportWc(wcId, reason = null) { return this.rpc('report_wc', { p_wc_id: wcId, p_reason: reason }, { write: true }); }
 
+  /** Fotos de un baño: miniatura (para listas, ~15 KB) y foto completa (al tocar). */
   async wcPhotos(wcId) {
     const rows = await this.rpc('wc_photos', { p_wc_id: wcId });
-    return rows.map(r => ({ url: this.photoUrl(r.photo_path), username: r.username, created_at: r.created_at })).filter(p => p.url);
+    return rows
+      .map(r => ({ thumb: this.photoUrl(thumbPath(r.photo_path)), url: this.photoUrl(r.photo_path), username: r.username, created_at: r.created_at }))
+      .filter(p => p.url);
   }
 
   photoUrl(path) {
@@ -164,14 +191,26 @@ class Backend {
     return this.client.storage.from('photos').getPublicUrl(path).data.publicUrl;
   }
 
-  /** Sube una foto (Blob JPEG ya reducido) a photos/<uid>/<uuid>.jpg y devuelve la ruta. */
-  async uploadPhoto(blob) {
+  /**
+   * Sube la foto reducida y su miniatura a photos/<uid>/<uuid>.jpg y <uuid>_t.jpg.
+   * Devuelve la ruta de la foto completa (la miniatura se deriva por convención).
+   * cacheControl de 1 año: las fotos nunca cambian, así el navegador/CDN no las vuelve a pedir
+   * (ahorra el límite gratuito de tráfico).
+   */
+  async uploadPhoto(full, thumb) {
+    await this.ensureSession();
     const { data: { session } } = await this.client.auth.getSession();
     const uid = session?.user?.id;
     if (!uid) throw new Error('not_authenticated');
     const path = `${uid}/${crypto.randomUUID()}.jpg`;
-    const { error } = await this.client.storage.from('photos').upload(path, blob, { contentType: 'image/jpeg', upsert: false });
+    const opts = { contentType: 'image/jpeg', upsert: false, cacheControl: '31536000' };
+    const bucket = this.client.storage.from('photos');
+    const { error } = await bucket.upload(path, full, opts);
     if (error) throw error;
+    if (thumb) {
+      const { error: e2 } = await bucket.upload(thumbPath(path), thumb, opts);
+      if (e2) console.warn('No se pudo subir la miniatura (se usará la foto completa):', e2);
+    }
     return path;
   }
 }

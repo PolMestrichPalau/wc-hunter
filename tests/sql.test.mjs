@@ -116,6 +116,9 @@ await test('check_in: rechaza lejos (>150 m), pide ubicacion y valida fotos ajen
     await expectErr(checkIn(wc1, BCN[0] + 0.01, BCN[1]), /too_far:\d+/);
     await expectErr(db.query(`select public.check_in($1, 4, 'open', null, null, null, null, null, null)`, [wc1]), /location_required/);
     await expectErr(checkIn(wc1, ...BCN, { photo: `${A}/foto.jpg` }), /bad_photo_path/);
+    await expectErr(checkIn(wc1, ...BCN, { photo: `${D}/abc.jpg` }), /bad_photo_path/);                       // no es uuid
+    await expectErr(checkIn(wc1, ...BCN, { photo: `${D}/${crypto.randomUUID()}.jpg'+alert(1)+'.jpg` }), /bad_photo_path/); // inyeccion
+    await expectErr(checkIn(wc1, ...BCN, { photo: `${A}/${crypto.randomUUID()}.jpg` }), /bad_photo_path/);   // carpeta ajena
     await expectErr(checkIn(wc1, ...BCN, { rating: 9 }), /bad_rating/);
     await expectErr(checkIn('00000000-0000-0000-0000-000000000000', ...BCN), /wc_not_found/);
   });
@@ -123,7 +126,7 @@ await test('check_in: rechaza lejos (>150 m), pide ubicacion y valida fotos ajen
 
 await test('check_in: primer check-in = 15 + 45 (primero) + 10 (primera visita) + 10 (foto)', async () => {
   await as(D, async () => {
-    const r = await checkIn(wc1, ...BCN, { rating: 5, photo: `${D}/abc.jpg`, comment: 'Trono de mármol' });
+    const r = await checkIn(wc1, ...BCN, { rating: 5, photo: `${D}/${crypto.randomUUID()}.jpg`, comment: 'Trono de mármol' });
     assert.equal(r.xp_awarded, 80);
     assert.equal(r.first_to_document, true);
     assert.equal(r.breakdown.length, 4);
