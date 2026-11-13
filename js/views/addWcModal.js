@@ -281,11 +281,17 @@ export function renderAddWcModal(container) {
   let pin = null;
   if (window.L && mapEl) {
     pickerMap = window.L.map(mapEl, { center: [uLoc.lat, uLoc.lng], zoom: 16, zoomControl: true });
-    window.L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-      attribution: '&copy; OpenStreetMap &copy; CARTO',
-      subdomains: 'abcd',
+    const pickerTiles = window.L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; OpenStreetMap',
       maxZoom: 19
-    }).addTo(pickerMap);
+    });
+    pickerTiles.on('tileerror', (e) => {
+      if (e?.tile && e?.coords && !e.tile._fallbackDone) {
+        e.tile._fallbackDone = true;
+        e.tile.src = `https://a.tile.openstreetmap.fr/hot/${e.coords.z}/${e.coords.x}/${e.coords.y}.png`;
+      }
+    });
+    pickerTiles.addTo(pickerMap);
     pin = window.L.marker([uLoc.lat, uLoc.lng], { draggable: true }).addTo(pickerMap);
     pin.on('dragend', () => {
       const p = pin.getLatLng();
