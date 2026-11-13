@@ -2,6 +2,7 @@
  * WC HUNTER — Vista Perfil & Récords Personales V2.0
  */
 import { store } from '../state.js';
+import { AVATAR_POOL } from '../seedData.js';
 import { calculateLevel } from '../engines/gameEngine.js';
 import { computeUserRecords, generateUserNickname } from '../engines/userEngine.js';
 import { esc } from '../utils.js';
@@ -12,6 +13,7 @@ export function renderProfileView(container) {
   const levelInfo = calculateLevel(user.xp);
   const autoNick = generateUserNickname(user);
   const records = computeUserRecords(store.wcs, user, store.userLocation);
+  const favWcs = store.wcs.filter(w => store.isFavorite(w.id));
 
   container.innerHTML = `
     <div class="w-full h-full flex flex-col bg-slate-950 text-slate-100 overflow-y-auto pb-24 md:pb-8">
@@ -27,18 +29,69 @@ export function renderProfileView(container) {
           </span>
         </div>
 
-        <h1 class="text-xl sm:text-2xl font-black text-white">${esc(user.username)}</h1>
-        ${store.remote ? `<button id="rename-btn" class="text-[11px] font-bold text-slate-400 hover:text-amber-300 mt-0.5">✏️ Cambiar nombre</button>` : ''}
+        <div class="flex items-center gap-2">
+          <h1 class="text-xl sm:text-2xl font-black text-white">${esc(user.username)}</h1>
+          <button id="rename-btn" class="text-xs font-bold bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-amber-300 px-2 py-1 rounded-lg border border-slate-700 transition" title="Cambiar nombre">
+            ✏️ Editar
+          </button>
+        </div>
         <p class="text-xs text-amber-400 font-extrabold mt-0.5 tracking-wide">${esc(user.title)}</p>
         <span class="text-[11px] text-slate-400 italic mt-1">"${esc(autoNick)}"</span>
 
-        <div class="mt-3 bg-emerald-950/40 border border-emerald-500/30 rounded-xl px-3.5 py-1.5 flex items-center gap-2">
-          <span class="text-sm">🛡️</span>
-          <span class="text-xs font-bold text-emerald-300">Reputación Hunter: <strong>${esc(user.reputation)}% Fiable</strong></span>
+        <!-- Selector rápido de Avatar -->
+        <div class="flex items-center gap-1.5 mt-3 bg-slate-900/90 border border-slate-800 rounded-2xl px-3 py-1.5 overflow-x-auto max-w-full no-scrollbar">
+          <span class="text-[10px] font-black uppercase text-slate-500 mr-1">Avatar:</span>
+          ${AVATAR_POOL.map(av => `
+            <button type="button" data-avatar-pick="${esc(av)}" class="w-8 h-8 rounded-xl flex items-center justify-center text-base transition ${user.avatar === av ? 'bg-amber-500/25 border border-amber-400 scale-110' : 'hover:bg-slate-800 opacity-75 hover:opacity-100'}">
+              ${esc(av)}
+            </button>
+          `).join('')}
+        </div>
+
+        <div class="mt-3 flex items-center gap-2 flex-wrap justify-center">
+          <div class="bg-emerald-950/40 border border-emerald-500/30 rounded-xl px-3.5 py-1.5 flex items-center gap-2">
+            <span class="text-sm">🛡️</span>
+            <span class="text-xs font-bold text-emerald-300">Reputación: <strong>${esc(user.reputation)}% Fiable</strong></span>
+          </div>
+          <button type="button" id="toggle-sound-btn" class="bg-slate-900 border border-slate-700 hover:border-slate-600 rounded-xl px-3 py-1.5 text-xs font-bold text-slate-300 flex items-center gap-1.5 transition">
+            <span>${user.sound_enabled !== false ? '🔊' : '🔇'}</span>
+            <span>Sonido: ${user.sound_enabled !== false ? 'ON' : 'OFF'}</span>
+          </button>
         </div>
       </div>
 
       <div class="px-4 sm:px-6 py-5 flex flex-col gap-5 max-w-4xl mx-auto w-full">
+
+        <!-- 0. ❤️ MIS TRONOS FAVORITOS GUARDADOS -->
+        <div class="bg-slate-900/80 border border-slate-800 rounded-3xl p-5 flex flex-col gap-3 shadow-md">
+          <div class="flex items-center justify-between">
+            <h2 class="text-xs font-black uppercase tracking-wider text-slate-300 flex items-center gap-2">
+              <span>❤️</span>
+              <span>Mis WC Favoritos Guardados (${favWcs.length})</span>
+            </h2>
+            <span class="text-xs text-rose-400 font-bold">Acceso Rápido</span>
+          </div>
+
+          ${favWcs.length === 0 ? `
+            <p class="text-xs text-slate-400 italic py-2">Aún no has guardado ningún baño en favoritos. Pulsa el icono 🤍 en el mapa o en la ficha de cualquier WC para guardarlo aquí.</p>
+          ` : `
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+              ${favWcs.map(wc => `
+                <div class="bg-slate-800/80 hover:bg-slate-800 border border-slate-700/70 hover:border-rose-500/40 rounded-2xl p-3 flex items-center justify-between gap-2.5 cursor-pointer fav-wc-card transition" data-wc-id="${esc(wc.id)}">
+                  <div class="min-w-0">
+                    <div class="flex items-center gap-1.5">
+                      <span class="text-xs font-black text-white truncate">${esc(wc.name)}</span>
+                    </div>
+                    <p class="text-[11px] text-slate-400 truncate mt-0.5">📍 ${esc(wc.address)}, ${esc(wc.city)}</p>
+                  </div>
+                  <span class="text-xs font-black px-2.5 py-1 rounded-xl bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 flex-shrink-0">
+                    ${wc.unrated ? '?' : esc(wc.score)} pts
+                  </span>
+                </div>
+              `).join('')}
+            </div>
+          `}
+        </div>
         
         <!-- 1. 💩 MIS RÉCORDS PERSONALES -->
         <div class="bg-slate-900/80 border border-slate-800 rounded-3xl p-5 flex flex-col gap-3 shadow-md">
@@ -190,18 +243,58 @@ export function renderProfileView(container) {
     </div>
   `;
 
-  // Modo comunidad: cambiar nombre público (validado y único en el servidor)
+  // Cambiar nombre público (en modo comunidad y en modo local)
   container.querySelector('#rename-btn')?.addEventListener('click', async () => {
-    const wanted = window.prompt('Tu nombre público (3-24 letras, números, _ . -):', user.username);
-    if (!wanted || wanted === user.username) return;
-    try {
-      store.applyRemoteProfile(await backend.setProfile({ username: wanted }));
-      store.notify('USER_UPDATED', store.user);
-      store.showToast('✏️ Nombre actualizado', 'info');
+    const wanted = window.prompt('Tu nombre público de Cazador (3-24 caracteres):', user.username);
+    if (!wanted) return;
+    const clean = wanted.trim().slice(0, 24);
+    if (clean.length < 3 || clean === user.username) return;
+    if (store.remote) {
+      try {
+        store.applyRemoteProfile(await backend.setProfile({ username: clean }));
+        store.notify('USER_UPDATED', store.user);
+        store.showToast('✏️ Nombre actualizado', 'success');
+        renderProfileView(container);
+      } catch (e) {
+        store.showToast(describeError(e).message, 'info');
+      }
+    } else {
+      user.username = clean;
+      store.notify('USER_UPDATED', user);
+      store.showToast(`✏️ Ahora te llamas @${clean}`, 'success');
       renderProfileView(container);
-    } catch (e) {
-      store.showToast(describeError(e).message, 'info');
     }
+  });
+
+  // Selector de avatar
+  container.querySelectorAll('[data-avatar-pick]').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const av = btn.getAttribute('data-avatar-pick');
+      if (!av || av === user.avatar) return;
+      if (store.remote) {
+        try {
+          store.applyRemoteProfile(await backend.setProfile({ avatar: av }));
+        } catch (e) {}
+      }
+      user.avatar = av;
+      store.notify('USER_UPDATED', user);
+      store.showToast(`${av} Avatar actualizado`, 'info', 2000);
+      renderProfileView(container);
+    });
+  });
+
+  // Toggle de sonido
+  container.querySelector('#toggle-sound-btn')?.addEventListener('click', () => {
+    store.toggleSound();
+    renderProfileView(container);
+  });
+
+  // Abrir ficha desde Mis Favoritos
+  container.querySelectorAll('.fav-wc-card').forEach(card => {
+    card.addEventListener('click', () => {
+      const id = card.getAttribute('data-wc-id');
+      if (id) store.openWcDetail(id);
+    });
   });
 
   // Attach event listeners for title pick

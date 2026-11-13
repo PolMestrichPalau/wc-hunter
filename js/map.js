@@ -241,9 +241,54 @@ class MapManager {
   }
 
   panTo(lat, lng, zoom = 16) {
+    this.lastView = { center: { lat, lng }, zoom };
     if (this.map) {
-      this.map.flyTo([lat, lng], zoom, { duration: 1.2 });
+      this.map.flyTo([lat, lng], zoom, { duration: 1.1 });
     }
+  }
+
+  jumpToCity(cityObj) {
+    if (!cityObj) return;
+    store.userLocation = {
+      lat: cityObj.lat,
+      lng: cityObj.lng,
+      name: `${cityObj.name} (Centro)`,
+      city: cityObj.name,
+      country: cityObj.country || 'España'
+    };
+    this.lastView = { center: { lat: cityObj.lat, lng: cityObj.lng }, zoom: cityObj.zoom || 14 };
+    if (this.userMarker) this.userMarker.setLatLng([cityObj.lat, cityObj.lng]);
+    if (this.map) {
+      this.map.flyTo([cityObj.lat, cityObj.lng], cityObj.zoom || 14, { duration: 1.1 });
+    }
+    store.showToast(`🗺️ Radar centrado en ${cityObj.name}`, 'info', 2200);
+  }
+
+  locateUser() {
+    if (!navigator.geolocation) {
+      this.panTo(store.userLocation.lat, store.userLocation.lng, 15);
+      store.showToast('📍 Centrado en tu posición actual', 'info', 2200);
+      return;
+    }
+    store.showToast('📡 Obteniendo tu señal GPS...', 'info', 2000);
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const uLat = pos.coords.latitude;
+        const uLng = pos.coords.longitude;
+        store.userLocation = { ...store.userLocation, lat: uLat, lng: uLng, name: 'Tu ubicación GPS' };
+        if (this.userMarker) this.userMarker.setLatLng([uLat, uLng]);
+        this.panTo(uLat, uLng, 16);
+        store.showToast('🎯 Centrado en tu ubicación GPS exacta', 'success', 2500);
+        reverseGeocode(uLat, uLng).then(info => {
+          if (info) store.userLocation = { ...store.userLocation, city: info.city, country: info.country };
+        });
+      },
+      () => {
+        this.panTo(store.userLocation.lat, store.userLocation.lng, 15);
+        store.showToast('📍 Sin señal GPS: centrado en posición activa', 'info', 2500);
+      },
+      { enableHighAccuracy: true, timeout: 5000 }
+    );
   }
 
   invalidate() {

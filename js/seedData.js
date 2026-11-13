@@ -37,8 +37,10 @@ export const INITIAL_USER = {
   // Registros para antifraude y progreso real
   verified_log: {},        // { wcId: timestamp de la ultima verificacion }
   discovery_log: [],       // timestamps de descubrimientos (limite diario de XP)
-  visited_cities: [],
-  visited_countries: [],
+  visited_cities: ["madrid", "barcelona", "valencia", "sevilla"],
+  visited_countries: ["españa"],
+  favorites: ["wc_mad_callao_corte", "wc_bcn_hotel_w"],
+  sound_enabled: true,
   last_active_date: null,
   unlocked_achievements: [
     "first_wc",
@@ -80,6 +82,14 @@ export const MISSIONS_LIST = [
   { id: "mis_secret_hunt", title: "Caza Secreta", description: "Descubre 1 WC secreto no documentado", progress: 0, target: 1, xp_reward: 150, completed: false }
 ];
 
+export const AVATAR_POOL = ["🧔‍♂️", "🥷", "🕵️‍♀️", "👑", "🦊", "🤖", "🧻", "💩", "🦁", "🚀"];
+
+export const CITIES_QUICK_JUMP = [
+  { id: "madrid", name: "Madrid", lat: 40.4168, lng: -3.7038, zoom: 14, country: "España" },
+  { id: "barcelona", name: "Barcelona", lat: 41.3874, lng: 2.1686, zoom: 13, country: "España" },
+  { id: "valencia", name: "Valencia", lat: 39.4699, lng: -0.3763, zoom: 13, country: "España" },
+  { id: "sevilla", name: "Sevilla", lat: 37.3826, lng: -5.9935, zoom: 14, country: "España" }
+];
 
 export const INITIAL_WCS = [
   {
@@ -95,6 +105,8 @@ export const INITIAL_WCS = [
     difficulty: 3,
     access_type: "free",
     access_label: "Entrada Museo / Gratuito 18-20h",
+    access_code: "",
+    hunter_tip: "Entra por Puerta de los Jerónimos. De 18:00 a 20:00 el acceso es gratuito y los baños de la planta baja junto a cafetería están impecables.",
     price: 0.0,
     opening_hours: "10:00 - 20:00",
     equipment: {
@@ -122,7 +134,7 @@ export const INITIAL_WCS = [
     current_status: "open",
     personality_tag: "👑 EL PALACIO",
     personality_desc: "Mármol impoluto, música clásica tenue y dispensadores siempre llenos.",
-    last_verified_at: new Date(Date.now() - 1000 * 60 * 4).toISOString(), // hace 4 min
+    last_verified_at: new Date(Date.now() - 1000 * 60 * 4).toISOString(),
     would_return_ratio: { yes: 48, no: 2 },
     is_secret: false,
     discovered_by: "PolM",
@@ -135,6 +147,10 @@ export const INITIAL_WCS = [
         uploaded_at: new Date(Date.now() - 1000 * 60 * 60 * 24 * 2).toISOString(),
         category: "cleanliness"
       }
+    ],
+    recent_reviews: [
+      { username: "MasterFlush_99", avatar: "👑", rating: 5, comment: "Impecable como siempre. Silencio absoluto.", created_at: new Date(Date.now() - 1000 * 60 * 35).toISOString() },
+      { username: "LaReinaDelTrono", avatar: "🕵️‍♀️", rating: 5, comment: "Jabón con aroma a lavanda y papel triple capa.", created_at: new Date(Date.now() - 1000 * 60 * 180).toISOString() }
     ],
     reviews_count: 52
   },
@@ -151,6 +167,8 @@ export const INITIAL_WCS = [
     difficulty: 6,
     access_type: "free",
     access_label: "Entrada libre por planta Gourmet",
+    access_code: "Entrada libre (Planta 9)",
+    hunter_tip: "Sube en los ascensores directos a la Planta 9 (Gourmet Experience). Al fondo a la derecha detrás de la vinoteca están los baños VIP.",
     price: 0.0,
     opening_hours: "10:00 - 22:00",
     equipment: {
@@ -178,13 +196,17 @@ export const INITIAL_WCS = [
     current_status: "open",
     personality_tag: "👑 EL PALACIO",
     personality_desc: "El mejor baño gratuito del centro de Madrid con vistas panorámicas.",
-    last_verified_at: new Date(Date.now() - 1000 * 60 * 8).toISOString(), // hace 8 min
+    last_verified_at: new Date(Date.now() - 1000 * 60 * 8).toISOString(),
     would_return_ratio: { yes: 62, no: 1 },
     is_secret: true,
     discovered_by: "PolM",
     discovered_date: "14 sept 2026",
     verified_by_count: 22,
     photos: [],
+    recent_reviews: [
+      { username: "PolM", avatar: "🧔‍♂️", rating: 5, comment: "El salvavidas definitivo en pleno Gran Vía / Callao.", created_at: new Date(Date.now() - 1000 * 60 * 45).toISOString() },
+      { username: "PapelMan", avatar: "🧻", rating: 5, comment: "Puertas hasta el suelo, privacidad 10/10.", created_at: new Date(Date.now() - 1000 * 60 * 240).toISOString() }
+    ],
     reviews_count: 42
   },
   {
@@ -200,6 +222,8 @@ export const INITIAL_WCS = [
     difficulty: 4,
     access_type: "paid",
     access_label: "1,00 € con tarjeta en torno",
+    access_code: "Contactless 1,00 €",
+    hunter_tip: "Guarda el ticket: te descuentan el euro en las tiendas asociadas de la estación. Incluye cabina para tomar la tensión.",
     price: 1.0,
     opening_hours: "06:00 - 23:30",
     equipment: {
@@ -234,6 +258,9 @@ export const INITIAL_WCS = [
     discovered_date: "10 sept 2026",
     verified_by_count: 35,
     photos: [],
+    recent_reviews: [
+      { username: "CaganerNinja", avatar: "🥷", rating: 5, comment: "Merece el euro si vas con prisa antes del AVE.", created_at: new Date(Date.now() - 1000 * 60 * 90).toISOString() }
+    ],
     reviews_count: 88
   },
   {
@@ -249,6 +276,8 @@ export const INITIAL_WCS = [
     difficulty: 2,
     access_type: "paid",
     access_label: "0,50 € (Moneda exacta)",
+    access_code: "Moneda 0,50 €",
+    hunter_tip: "Espera a que termine la luz azul de autolavado antes de entrar o te mojarás los zapatos. Máximo 15 minutos dentro.",
     price: 0.5,
     opening_hours: "24 Horas",
     equipment: {
@@ -283,6 +312,9 @@ export const INITIAL_WCS = [
     discovered_date: "12 sept 2026",
     verified_by_count: 19,
     photos: [],
+    recent_reviews: [
+      { username: "SolWalker", avatar: "🦊", rating: 3, comment: "Te salva a las 3 AM cuando todo está cerrado.", created_at: new Date(Date.now() - 1000 * 60 * 120).toISOString() }
+    ],
     reviews_count: 34
   },
   {
@@ -298,6 +330,8 @@ export const INITIAL_WCS = [
     difficulty: 4,
     access_type: "free",
     access_label: "Entrada libre al edificio",
+    access_code: "Control seguridad gratuito",
+    hunter_tip: "Pasa el arco de seguridad gratuito de CentroCentro y sube a la Planta 3 de exposiciones. Casi nadie los usa.",
     price: 0.0,
     opening_hours: "10:00 - 20:00",
     equipment: {
@@ -332,7 +366,116 @@ export const INITIAL_WCS = [
     discovered_date: "15 sept 2026",
     verified_by_count: 8,
     photos: [],
+    recent_reviews: [
+      { username: "PolM", avatar: "🧔‍♂️", rating: 5, comment: "Oasis de paz frente al Paseo del Prado.", created_at: new Date(Date.now() - 1000 * 60 * 300).toISOString() }
+    ],
     reviews_count: 26
+  },
+  {
+    id: "wc_mad_four_seasons",
+    name: "WC Galería Canalejas / Four Seasons",
+    latitude: 40.41752,
+    longitude: -3.70065,
+    address: "Calle de Alcalá, 12 (Planta Food Hall)",
+    city: "Madrid",
+    country: "España",
+    type: "luxury_hotel",
+    rarity: "MYTHIC",
+    difficulty: 7,
+    access_type: "free",
+    access_label: "Acceso libre por Food Hall Canalejas",
+    access_code: "Planta -1 Food Hall",
+    hunter_tip: "Entra por la puerta de Galería Canalejas en C/ Alcalá y baja al Food Hall. Toallas de algodón individuales y grifería dorada.",
+    price: 0.0,
+    opening_hours: "12:00 - 00:00",
+    equipment: {
+      paper: true,
+      soap: true,
+      water: true,
+      mirror: true,
+      dryer: true,
+      baby_changing: true,
+      wheelchair: true,
+      bidet: true,
+      lock_functional: true
+    },
+    score: 99,
+    score_breakdown: {
+      cleanliness: 100,
+      odor: 100,
+      paper: 100,
+      soap: 100,
+      privacy: 99,
+      condition: 100,
+      price: 95
+    },
+    confidence: 98,
+    current_status: "open",
+    personality_tag: "👑 EL PALACIO",
+    personality_desc: "Lujo de 5 estrellas gran lujo: toallas de tela reales, crema de manos de autor y mármol negro.",
+    last_verified_at: new Date(Date.now() - 1000 * 60 * 14).toISOString(),
+    would_return_ratio: { yes: 94, no: 0 },
+    is_secret: true,
+    discovered_by: "MasterFlush_99",
+    discovered_date: "18 sept 2026",
+    verified_by_count: 31,
+    photos: [],
+    recent_reviews: [
+      { username: "MasterFlush_99", avatar: "👑", rating: 5, comment: "Toallas de tela de verdad y olor a higuera mediterránea. Nivel Dios.", created_at: new Date(Date.now() - 1000 * 60 * 20).toISOString() }
+    ],
+    reviews_count: 64
+  },
+  {
+    id: "wc_mad_retiro_florida",
+    name: "WC Pabellón Florida Park (El Retiro)",
+    latitude: 40.41585,
+    longitude: -3.68015,
+    address: "Paseo de Panamá s/n (Parque del Retiro)",
+    city: "Madrid",
+    country: "España",
+    type: "public_park",
+    rarity: "RARE",
+    difficulty: 3,
+    access_type: "free",
+    access_label: "Acceso libre zona quioscos",
+    access_code: "",
+    hunter_tip: "Mucho más limpios que los baños portátiles del estanque. Entra por la zona lateral de terraza.",
+    price: 0.0,
+    opening_hours: "10:00 - 23:00",
+    equipment: {
+      paper: true,
+      soap: true,
+      water: true,
+      mirror: true,
+      dryer: true,
+      baby_changing: true,
+      wheelchair: true,
+      bidet: false,
+      lock_functional: true
+    },
+    score: 86,
+    score_breakdown: {
+      cleanliness: 86,
+      odor: 84,
+      paper: 88,
+      soap: 85,
+      privacy: 84,
+      condition: 88,
+      price: 95
+    },
+    confidence: 89,
+    current_status: "open",
+    personality_tag: "💎 EL WC PREMIUM",
+    personality_desc: "Rodeado de árboles en pleno Retiro, ideal si estás corriendo o paseando.",
+    last_verified_at: new Date(Date.now() - 1000 * 60 * 65).toISOString(),
+    would_return_ratio: { yes: 38, no: 4 },
+    is_secret: false,
+    discovered_by: "PolM",
+    discovered_date: "17 sept 2026",
+    verified_by_count: 12,
+    photos: [],
+    recent_reviews: [],
+    reviews_count: 19
   },
   {
     id: "wc_bcn_hotel_w",
@@ -347,6 +490,8 @@ export const INITIAL_WCS = [
     difficulty: 9,
     access_type: "customers_only",
     access_label: "Solo clientes o acceso seguro ascensor",
+    access_code: "Ascensor Express P26",
+    hunter_tip: "Vístete elegante, entra con decisión hacia los ascensores de la izquierda del lobby y pulsa Planta 26. Vistas al Mediterráneo desde el lavabo.",
     price: 0.0,
     opening_hours: "18:00 - 02:00",
     equipment: {
@@ -381,7 +526,226 @@ export const INITIAL_WCS = [
     discovered_date: "15 sept 2026",
     verified_by_count: 18,
     photos: [],
+    recent_reviews: [
+      { username: "PolM", avatar: "🧔‍♂️", rating: 5, comment: "Cristalera gigante mirando al mar desde el piso 26. Épico.", created_at: new Date(Date.now() - 1000 * 60 * 240).toISOString() }
+    ],
     reviews_count: 19
+  },
+  {
+    id: "wc_bcn_el_nacional",
+    name: "WC Salón de Espejos El Nacional",
+    latitude: 41.39058,
+    longitude: 2.16834,
+    address: "Passeig de Gràcia, 24 Bis",
+    city: "Barcelona",
+    country: "España",
+    type: "restaurant",
+    rarity: "LEGENDARY",
+    difficulty: 4,
+    access_type: "free",
+    access_label: "Acceso libre por pasaje interior",
+    access_code: "Pasillo central al fondo",
+    hunter_tip: "Al ser un multiespacio gastronómico gigante puedes entrar caminando por el pasaje modernista sin que nadie te pregunte.",
+    price: 0.0,
+    opening_hours: "12:00 - 01:00",
+    equipment: {
+      paper: true,
+      soap: true,
+      water: true,
+      mirror: true,
+      dryer: true,
+      baby_changing: true,
+      wheelchair: true,
+      bidet: false,
+      lock_functional: true
+    },
+    score: 95,
+    score_breakdown: {
+      cleanliness: 96,
+      odor: 95,
+      paper: 98,
+      soap: 96,
+      privacy: 92,
+      condition: 97,
+      price: 95
+    },
+    confidence: 95,
+    current_status: "open",
+    personality_tag: "👑 EL PALACIO",
+    personality_desc: "El baño más instagrameable de Barcelona con galería de espejos retroiluminados.",
+    last_verified_at: new Date(Date.now() - 1000 * 60 * 42).toISOString(),
+    would_return_ratio: { yes: 71, no: 2 },
+    is_secret: false,
+    discovered_by: "PapelMan",
+    discovered_date: "14 sept 2026",
+    verified_by_count: 27,
+    photos: [],
+    recent_reviews: [
+      { username: "PapelMan", avatar: "🧻", rating: 5, comment: "Diseño brutalista-modernista increíble y siempre limpio.", created_at: new Date(Date.now() - 1000 * 60 * 95).toISOString() }
+    ],
+    reviews_count: 49
+  },
+  {
+    id: "wc_bcn_macba_plaza",
+    name: "Cabina Pública Plaça dels Àngels (MACBA)",
+    latitude: 41.38319,
+    longitude: 2.16686,
+    address: "Plaça dels Àngels s/n (El Raval)",
+    city: "Barcelona",
+    country: "España",
+    type: "public_street",
+    rarity: "COMMON",
+    difficulty: 2,
+    access_type: "free",
+    access_label: "Gratuito (Cola frecuente)",
+    access_code: "",
+    hunter_tip: "Solo para emergencias extremas. Si el museo MACBA está abierto, es mil veces mejor entrar al vestíbulo del museo.",
+    price: 0.0,
+    opening_hours: "08:00 - 22:00",
+    equipment: {
+      paper: false,
+      soap: true,
+      water: true,
+      mirror: false,
+      dryer: true,
+      baby_changing: false,
+      wheelchair: true,
+      bidet: false,
+      lock_functional: true
+    },
+    score: 48,
+    score_breakdown: {
+      cleanliness: 42,
+      odor: 38,
+      paper: 30,
+      soap: 60,
+      privacy: 70,
+      condition: 50,
+      price: 90
+    },
+    confidence: 84,
+    current_status: "open",
+    personality_tag: "🏚️ EL SUPERVIVIENTE",
+    personality_desc: "Territorio skater en pleno Raval. Lleva tus propios kleenex por precaución.",
+    last_verified_at: new Date(Date.now() - 1000 * 60 * 75).toISOString(),
+    would_return_ratio: { yes: 12, no: 31 },
+    is_secret: false,
+    discovered_by: "CaganerNinja",
+    discovered_date: "11 sept 2026",
+    verified_by_count: 15,
+    photos: [],
+    recent_reviews: [
+      { username: "CaganerNinja", avatar: "🥷", rating: 1, comment: "No quedaba papel a las 19h. Ve preparado.", created_at: new Date(Date.now() - 1000 * 60 * 75).toISOString() }
+    ],
+    reviews_count: 29
+  },
+  {
+    id: "wc_val_artes_ciencias",
+    name: "WC Hemisfèric Ciudad de las Artes",
+    latitude: 39.45662,
+    longitude: -0.35401,
+    address: "Av. del Professor López Piñero, 3",
+    city: "Valencia",
+    country: "España",
+    type: "museum",
+    rarity: "RARE",
+    difficulty: 3,
+    access_type: "free",
+    access_label: "Acceso libre galería inferior",
+    access_code: "",
+    hunter_tip: "Baja por la rampa lateral hacia las taquillas del Hemisfèric: no hace falta entrada para acceder a la galería de aseos.",
+    price: 0.0,
+    opening_hours: "10:00 - 21:00",
+    equipment: {
+      paper: true,
+      soap: true,
+      water: true,
+      mirror: true,
+      dryer: true,
+      baby_changing: true,
+      wheelchair: true,
+      bidet: false,
+      lock_functional: true
+    },
+    score: 92,
+    score_breakdown: {
+      cleanliness: 94,
+      odor: 92,
+      paper: 95,
+      soap: 90,
+      privacy: 90,
+      condition: 94,
+      price: 95
+    },
+    confidence: 93,
+    current_status: "open",
+    personality_tag: "👑 EL PALACIO",
+    personality_desc: "Arquitectura futurista blanca de Calatrava, amplitud total y aire acondicionado potente.",
+    last_verified_at: new Date(Date.now() - 1000 * 60 * 95).toISOString(),
+    would_return_ratio: { yes: 53, no: 2 },
+    is_secret: false,
+    discovered_by: "LaReinaDelTrono",
+    discovered_date: "13 sept 2026",
+    verified_by_count: 19,
+    photos: [],
+    recent_reviews: [
+      { username: "LaReinaDelTrono", avatar: "🕵️‍♀️", rating: 5, comment: "Fresquito en verano y súper amplio.", created_at: new Date(Date.now() - 1000 * 60 * 190).toISOString() }
+    ],
+    reviews_count: 37
+  },
+  {
+    id: "wc_sev_alfonso_xiii",
+    name: "WC Patio Real Hotel Alfonso XIII",
+    latitude: 37.38221,
+    longitude: -5.99305,
+    address: "Calle San Fernando, 2",
+    city: "Sevilla",
+    country: "España",
+    type: "luxury_hotel",
+    rarity: "LEGENDARY",
+    difficulty: 6,
+    access_type: "customers_only",
+    access_label: "Clientes cafetería / Acceso patio mudéjar",
+    access_code: "Galería Patio Central",
+    hunter_tip: "Entra al patio central mudéjar como si fueras a tomar un café en el Bar Americano. Azulejos sevillanos históricos de 1929.",
+    price: 0.0,
+    opening_hours: "09:00 - 00:00",
+    equipment: {
+      paper: true,
+      soap: true,
+      water: true,
+      mirror: true,
+      dryer: true,
+      baby_changing: true,
+      wheelchair: true,
+      bidet: true,
+      lock_functional: true
+    },
+    score: 97,
+    score_breakdown: {
+      cleanliness: 99,
+      odor: 98,
+      paper: 100,
+      soap: 98,
+      privacy: 96,
+      condition: 98,
+      price: 90
+    },
+    confidence: 95,
+    current_status: "open",
+    personality_tag: "👑 EL PALACIO",
+    personality_desc: "Azulejos artesanales de Triana, aroma a azahar y digno de la realeza.",
+    last_verified_at: new Date(Date.now() - 1000 * 60 * 140).toISOString(),
+    would_return_ratio: { yes: 66, no: 1 },
+    is_secret: true,
+    discovered_by: "CaganerNinja",
+    discovered_date: "14 sept 2026",
+    verified_by_count: 21,
+    photos: [],
+    recent_reviews: [
+      { username: "CaganerNinja", avatar: "🥷", rating: 5, comment: "Un monumento histórico hecho cuarto de baño.", created_at: new Date(Date.now() - 1000 * 60 * 260).toISOString() }
+    ],
+    reviews_count: 33
   }
 ];
 

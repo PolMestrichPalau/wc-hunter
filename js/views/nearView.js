@@ -41,6 +41,9 @@ export function renderNearView(container) {
   } else if (currentIntent === 'equipped') {
     filtered = filtered.filter(w => w.equipment.paper && w.equipment.soap);
     filtered.sort((a, b) => b.score - a.score);
+  } else if (currentIntent === 'favorites') {
+    filtered = filtered.filter(w => store.isFavorite(w.id));
+    filtered.sort((a, b) => a.distanceMeters - b.distanceMeters);
   } else {
     // 'any' / '🚨 CUALQUIERA' -> Prioridad: Abierto > Cercano > Score
     filtered.sort((a, b) => {
@@ -104,6 +107,11 @@ export function renderNearView(container) {
             <span>BIEN EQUIPADO</span>
           </button>
 
+          <button data-intent-val="favorites" class="big-intent-btn ${currentIntent === 'favorites' ? 'active' : ''}">
+            <span>❤️</span>
+            <span>FAVORITOS</span>
+          </button>
+
           <button data-intent-val="baby" class="big-intent-btn ${currentIntent === 'baby' ? 'active' : ''}">
             <span>👶</span>
             <span>BEBÉ</span>
@@ -137,6 +145,7 @@ export function renderNearView(container) {
           const wouldRet = formatWouldReturn(wc.would_return_ratio);
           const walk = formatWalkTime(wc.distanceMeters);
           const distStr = `${formatDistance(wc.distanceMeters)}${walk ? ` (${walk})` : ''}`;
+          const navUrl = `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(wc.latitude)},${encodeURIComponent(wc.longitude)}&travelmode=walking`;
 
           return `
             <div class="bg-surface-container/90 border border-white/10 hover:border-emerald-500/40 rounded-3xl p-4 shadow-xl transition-all active:scale-[0.99] flex flex-col gap-3 cursor-pointer wc-rescue-card" data-wc-id="${esc(wc.id)}">
@@ -164,6 +173,13 @@ export function renderNearView(container) {
                 </div>
               </div>
 
+              ${(wc.hunter_tip || wc.access_code) ? `
+                <div class="bg-amber-950/30 border border-amber-500/25 rounded-xl px-2.5 py-1.5 text-[11px] text-amber-200 flex items-center gap-1.5">
+                  <span>💡</span>
+                  <span class="truncate font-medium">${wc.access_code ? `<strong class="text-amber-400">[${esc(wc.access_code)}]</strong> ` : ''}${esc(wc.hunter_tip)}</span>
+                </div>
+              ` : ''}
+
               <!-- Línea 2: Estado + Acceso + Equipamiento Clave -->
               <div class="flex items-center justify-between gap-2 flex-wrap text-xs pt-1.5 border-t border-white/5">
                 <div class="flex items-center gap-2 flex-wrap">
@@ -188,10 +204,15 @@ export function renderNearView(container) {
                 </div>
               </div>
 
-              <!-- Línea 3: Métrica Volvería -->
-              <div class="flex items-center justify-between text-[11px] bg-slate-950/60 rounded-xl px-3 py-1.5 border border-white/5">
-                <span class="text-emerald-400 font-black">👍 ${wouldRet.sentence}</span>
-                <span class="text-slate-400 font-bold">Ver detalles →</span>
+              <!-- Línea 3: Métrica Volvería + Botón Directo Ruta GPS -->
+              <div class="flex items-center justify-between gap-2 text-[11px] bg-slate-950/60 rounded-xl px-3 py-2 border border-white/5">
+                <span class="text-emerald-400 font-black truncate">👍 ${wouldRet.sentence}</span>
+                <div class="flex items-center gap-2 flex-shrink-0">
+                  <a href="${esc(navUrl)}" target="_blank" rel="noopener" class="rescue-nav-link bg-cyan-500/20 hover:bg-cyan-500/30 border border-cyan-400/50 text-cyan-300 font-black px-2.5 py-1 rounded-lg transition flex items-center gap-1">
+                    <span>🧭</span> <span>IR AHORA</span>
+                  </a>
+                  <span class="text-slate-400 font-bold hidden sm:inline">Ficha →</span>
+                </div>
               </div>
             </div>
           `;
@@ -208,6 +229,10 @@ export function renderNearView(container) {
       store.setIntentFilter(val === 'any' ? null : val);
       renderNearView(container);
     });
+  });
+
+  container.querySelectorAll('.rescue-nav-link').forEach(link => {
+    link.addEventListener('click', (e) => e.stopPropagation());
   });
 
   const cards = container.querySelectorAll('.wc-rescue-card');

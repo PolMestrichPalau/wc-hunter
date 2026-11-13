@@ -39,6 +39,7 @@ class App {
   }
 
   playSound(type = 'click') {
+    if (store.user?.sound_enabled === false) return;
     if (!this.audioCtx) this.initAudio();
     if (!this.audioCtx) return;
     if (this.audioCtx.state === 'suspended') {
@@ -235,6 +236,15 @@ function bootApp() {
   try {
     window.wcHunterApp = new App();
     store.connect(); // modo comunidad (si hay Supabase configurado); no bloquea el arranque
+    // Soporte de enlaces compartidos (?wc=id)
+    const wcParam = new URLSearchParams(window.location.search).get('wc');
+    if (wcParam) {
+      const target = store.wcs.find(w => w.id === wcParam);
+      if (target) {
+        mapManager.panTo(target.latitude, target.longitude, 17);
+        setTimeout(() => store.openWcDetail(target.id), 150);
+      }
+    }
     console.log("✅ WC HUNTER iniciado correctamente.");
   } catch (err) {
     console.error("❌ Error iniciando WC HUNTER:", err);

@@ -255,11 +255,20 @@ class Store {
     const savedWcs = Array.isArray(parsed.wcs) ? parsed.wcs.map(w => this.normalizeWc(w)).filter(Boolean) : [];
     this.wcs = savedWcs.length > 0 ? savedWcs : clone(INITIAL_WCS).map(w => this.normalizeWc(w));
 
-    // Incorporar WC semilla nuevos (que aun no estaban en el estado guardado)
-    const have = new Set(this.wcs.map(w => w.id));
+    // Incorporar WC semilla nuevos (que aun no estaban en el estado guardado) y enriquecer campos nuevos
+    const have = new Map(this.wcs.map(w => [w.id, w]));
     const seen = new Set(Array.isArray(parsed.seen_seed_ids) ? parsed.seen_seed_ids : []);
     INITIAL_WCS.forEach(seed => {
-      if (!have.has(seed.id) && !seen.has(seed.id)) this.wcs.push(this.normalizeWc(clone(seed)));
+      if (!have.has(seed.id) && !seen.has(seed.id)) {
+        this.wcs.push(this.normalizeWc(clone(seed)));
+      } else if (have.has(seed.id)) {
+        const existing = have.get(seed.id);
+        if (!existing.hunter_tip && seed.hunter_tip) existing.hunter_tip = seed.hunter_tip;
+        if (!existing.access_code && seed.access_code) existing.access_code = seed.access_code;
+        if ((!existing.recent_reviews || existing.recent_reviews.length === 0) && Array.isArray(seed.recent_reviews)) {
+          existing.recent_reviews = clone(seed.recent_reviews);
+        }
+      }
     });
 
     this.user = this.normalizeUser(parsed.user);
@@ -289,8 +298,10 @@ class Store {
     merged.unlocked_titles = Array.isArray(u.unlocked_titles) && u.unlocked_titles.length ? u.unlocked_titles : base.unlocked_titles;
     merged.verified_log = u.verified_log && typeof u.verified_log === 'object' && !Array.isArray(u.verified_log) ? u.verified_log : {};
     merged.discovery_log = Array.isArray(u.discovery_log) ? u.discovery_log : [];
-    merged.visited_cities = Array.isArray(u.visited_cities) ? u.visited_cities : [];
-    merged.visited_countries = Array.isArray(u.visited_countries) ? u.visited_countries : [];
+    merged.visited_cities = Array.isArray(u.visited_cities) ? u.visited_cities : base.visited_cities;
+    merged.visited_countries = Array.isArray(u.visited_countries) ? u.visited_countries : base.visited_countries;
+    merged.favorites = Array.isArray(u.favorites) ? u.favorites : (base.favorites || []);
+    merged.sound_enabled = u.sound_enabled !== undefined ? Boolean(u.sound_enabled) : true;
     merged.xp = num(merged.xp, 0);
     merged.streak_days = num(merged.streak_days, 0);
     merged.level = calculateLevel(merged.xp).level;
@@ -316,6 +327,8 @@ class Store {
       difficulty: num(wc.difficulty, 3),
       access_type: wc.access_type || 'free',
       access_label: wc.access_label || '🆓 Gratuito',
+      access_code: wc.access_code ? String(wc.access_code).slice(0, 60) : '',
+      hunter_tip: wc.hunter_tip ? String(wc.hunter_tip).slice(0, 280) : '',
       price: num(wc.price, 0),
       opening_hours: wc.opening_hours || 'Horario no especificado',
       equipment: {
@@ -347,6 +360,7 @@ class Store {
       would_return_ratio: wc.would_return_ratio || { yes: 10, no: 1 },
       is_secret: Boolean(wc.is_secret),
       photos: Array.isArray(wc.photos) ? wc.photos : [],
+      recent_reviews: Array.isArray(wc.recent_reviews) ? wc.recent_reviews.slice(-15) : [],
       discovered_by: wc.discovered_by || 'PolM',
       discovered_date: wc.discovered_date || '',
       creator_name: wc.creator_name || '',
@@ -358,6 +372,40 @@ class Store {
       // Firma para detectar cambios al refrescar desde el servidor
       checkins_sig: `${wc.verified_by_count ?? reviews}|${wc.score}|${wc.current_status}`
     };
+  }
+
+  // ---- FAVORITOS Y PREFERENCIAS ----
+
+  isFavorite(wcId) {
+    return Array.isArray(this.user?.favorites) && this.user.favorites.includes(wcId);
+  }
+
+  toggleFavorite(wcId) {
+    if (!wcId) return false;
+    if (!Array.isArray(this.user.favorites)) this.user.favorites = [];
+    const idx = this.user.favorites.indexOf(wcId);
+    let added = false;
+    if (idx >= 0) {
+      this.user.favorites.splice(idx, 1);
+      this.showToast('💔 Eliminado de tus WC Favoritos', 'info', 2500);
+    } else {
+      this.user.favorites.push(wcId);
+      added = true;
+      this.showToast('❤️ Guardado en tus WC Favoritos', 'success', 2500);
+    }
+    try {
+      const ls = safeStorage();
+      if (ls && this.remote) ls.setItem('wc_hunter_favs_v2', JSON.stringify(this.user.favorites));
+    } catch (e) {}
+    this.notify('USER_UPDATED', this.user);
+    return added;
+  }
+
+  toggleSound() {
+    this.user.sound_enabled = !this.user.sound_enabled;
+    this.showToast(this.user.sound_enabled ? '🔊 Efectos de sonido activados' : '🔇 Efectos de sonido silenciados', 'info', 2500);
+    this.notify('USER_UPDATED', this.user);
+    return this.user.sound_enabled;
   }
 
   saveState() {
@@ -611,6 +659,24 @@ class Store {
       wc.recent_reports = wc.recent_reports.slice(-MAX_REPORTS_KEPT);
     }
 
+    // Guardar reseña / consejo o código de acceso aportado por el cazador
+    const cleanComment = String(report.comment || '').trim().slice(0, 280);
+    const cleanCode = String(report.access_code || '').trim().slice(0, 60);
+    if (cleanCode) wc.access_code = cleanCode;
+    if (cleanComment) {
+      if (!Array.isArray(wc.recent_reviews)) wc.recent_reviews = [];
+      const ratingVal = closed ? 1 : (report.cleanliness === 'clean' ? 5 : (report.cleanliness === 'dirty' ? 1 : 4));
+      wc.recent_reviews.unshift({
+        username: this.user.username || 'Hunter',
+        avatar: this.user.avatar || '🧔‍♂️',
+        rating: ratingVal,
+        comment: cleanComment,
+        created_at: new Date(now).toISOString()
+      });
+      wc.recent_reviews = wc.recent_reviews.slice(0, 15);
+      if (!wc.hunter_tip) wc.hunter_tip = cleanComment;
+    }
+
     // Recalcular puntuaciones
     wc.verified_by_count = (wc.verified_by_count || 0) + 1;
     wc.reviews_count = (wc.reviews_count || 0) + 1;
@@ -625,7 +691,8 @@ class Store {
     this.checkAchievement('first_wc');
     this.checkContextAchievements(wc);
     this.syncProgressAchievements();
-    this.addXP(calculateXPForAction('VERIFICATION'), 'Verificación rápida');
+    const baseXp = calculateXPForAction('VERIFICATION') + (cleanComment ? 10 : 0);
+    this.addXP(baseXp, cleanComment ? 'Verificación + Consejo Hunter' : 'Verificación rápida');
 
     this.notify('WC_VERIFIED', wc);
     return true;
@@ -675,6 +742,8 @@ class Store {
       difficulty: rarityInfo.difficulty,
       access_type: data.access_type || 'free',
       access_label: data.access_label || '🆓 Gratuito',
+      access_code: String(data.access_code || '').trim().slice(0, 60),
+      hunter_tip: String(data.comment || '').trim().slice(0, 280),
       price,
       opening_hours: data.opening_hours || 'Horario no especificado',
       equipment: {
@@ -698,6 +767,13 @@ class Store {
       would_return_ratio: { yes: 1, no: 0 },
       is_secret: Boolean(data.is_secret),
       photos: [],
+      recent_reviews: String(data.comment || '').trim() ? [{
+        username: this.user.username || 'Hunter',
+        avatar: this.user.avatar || '🧔‍♂️',
+        rating,
+        comment: String(data.comment).trim().slice(0, 280),
+        created_at: new Date().toISOString()
+      }] : [],
       creator_name: this.user.username,
       discovered_by: this.user.username,
       discovered_date: new Date().toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: 'numeric' }),
@@ -758,7 +834,9 @@ class Store {
         w.country.toLowerCase().includes(q) ||
         w.address.toLowerCase().includes(q) ||
         w.type.toLowerCase().includes(q) ||
-        (w.personality_tag && w.personality_tag.toLowerCase().includes(q))
+        (w.personality_tag && w.personality_tag.toLowerCase().includes(q)) ||
+        (w.hunter_tip && w.hunter_tip.toLowerCase().includes(q)) ||
+        (w.access_code && w.access_code.toLowerCase().includes(q))
       );
     }
 
@@ -785,6 +863,9 @@ class Store {
         break;
       case 'secret':
         list = list.filter(w => w.is_secret);
+        break;
+      case 'favorites':
+        list = list.filter(w => this.isFavorite(w.id));
         break;
     }
 

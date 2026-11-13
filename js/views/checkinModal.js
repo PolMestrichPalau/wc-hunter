@@ -58,8 +58,11 @@ async function locate(container) {
   S.step = 'locating';
   S.error = '';
   draw(container);
-  const pos = await getPosition();
+  let pos = await getPosition();
   if (!S) return;
+  if (!pos && !store.remote) {
+    pos = { lat: store.userLocation.lat, lng: store.userLocation.lng, accuracy: 25 };
+  }
   if (!pos) {
     S.step = 'error';
     S.error = 'No pude obtener tu ubicación. Activa el GPS y da permiso de ubicación al navegador.';
@@ -296,7 +299,8 @@ async function submitExisting(container) {
     } else {
       const ok = store.verifyWC(wc.id, {
         status: S.closed ? 'closed' : 'open', has_paper: !S.noPaper, has_soap: !S.noSoap,
-        cleanliness: S.closed ? undefined : CLEAN[S.rating]
+        cleanliness: S.closed ? undefined : CLEAN[S.rating],
+        comment: S.comment.trim() || ''
       });
       if (!ok) throw new Error('Ya verificaste este baño hace poco. Vuelve más tarde.');
       S.result = { remote: false, wcId: wc.id, name: wc.name, rarity: wc.rarity };

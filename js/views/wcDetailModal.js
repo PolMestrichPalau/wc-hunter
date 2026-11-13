@@ -3,7 +3,9 @@
  * Ficha estructurada en los 4 Pilares: Calidad, Estado, Fiabilidad y Volvería.
  */
 import { store } from '../state.js';
-import { getSemanticStatus, formatWouldReturn, formatAccessBadge, formatRelativeTime, getScoreRatingText } from '../engines/wcEngine.js';
+import { mapManager } from '../map.js';
+import { setMapPreviewWc } from './mapView.js';
+import { getSemanticStatus, formatWouldReturn, formatAccessBadge, formatRelativeTime, getScoreRatingText, calculateDistanceMeters, formatDistance, formatWalkTime } from '../engines/wcEngine.js';
 import { evaluateRarity } from '../engines/gameEngine.js';
 import { esc, safeUrl } from '../utils.js';
 import { backend } from '../backend.js';
@@ -20,6 +22,12 @@ export function renderWcDetailModal(container) {
   const verifiedCount = wc.verified_by_count ?? 1;
   const accessibilityPct = (wc.equipment.wheelchair ? 50 : 0) + (wc.equipment.baby_changing ? 50 : 0);
   const photos = (wc.photos || []).map(p => ({ ...p, url: safeUrl(p.url) })).filter(p => p.url);
+  const isFav = store.isFavorite(wc.id);
+  const uLoc = store.userLocation;
+  const meters = calculateDistanceMeters(uLoc.lat, uLoc.lng, wc.latitude, wc.longitude);
+  const distStr = [formatDistance(meters), formatWalkTime(meters)].filter(Boolean).join(' · ');
+  const navUrl = `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(wc.latitude)},${encodeURIComponent(wc.longitude)}&travelmode=walking`;
+  const reviews = Array.isArray(wc.recent_reviews) ? wc.recent_reviews : [];
 
   const semantic = getSemanticStatus(wc);
   const wouldRet = formatWouldReturn(wc.would_return_ratio);
@@ -32,17 +40,25 @@ export function renderWcDetailModal(container) {
       <div class="bg-slate-900 border border-slate-700/80 w-full sm:max-w-xl max-h-[92vh] rounded-t-3xl sm:rounded-3xl shadow-2xl flex flex-col overflow-hidden animate-slide-up">
 
         <!-- Cabecera de Ficha -->
-        <div class="sticky top-0 z-10 bg-slate-900/95 backdrop-blur-md px-6 pt-4 pb-3 border-b border-slate-800 flex items-center justify-between">
-          <div class="flex items-center gap-2">
+        <div class="sticky top-0 z-10 bg-slate-900/95 backdrop-blur-md px-6 pt-4 pb-3 border-b border-slate-800 flex items-center justify-between gap-2">
+          <div class="flex items-center gap-2 flex-wrap">
             <span class="rarity-pill ${esc(wc.rarity)}">${esc(wc.rarity)}</span>
             <span class="text-xs font-black text-amber-400 bg-slate-800 px-2 py-0.5 rounded-lg border border-slate-700">
               🎯 Dif. ${rarityInfo.difficulty}/10
             </span>
             ${wc.is_secret ? `<span class="bg-purple-950 text-purple-300 text-[10px] font-black px-2 py-0.5 rounded-lg border border-purple-500/40">🔐 SECRETO</span>` : ''}
           </div>
-          <button id="close-detail-modal-btn" class="w-8 h-8 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-300 flex items-center justify-center font-black text-sm transition" aria-label="Cerrar ficha">
-            ✕
-          </button>
+          <div class="flex items-center gap-1.5 flex-shrink-0">
+            <button id="detail-fav-btn" class="w-8 h-8 rounded-full bg-slate-800 hover:bg-slate-700 border ${isFav ? 'border-rose-500/60 text-rose-400' : 'border-slate-700 text-slate-300'} flex items-center justify-center text-sm transition active:scale-90" title="${isFav ? 'Quitar de favoritos' : 'Guardar en favoritos'}" aria-label="Favorito">
+              ${isFav ? '❤️' : '🤍'}
+            </button>
+            <button id="detail-share-btn" class="w-8 h-8 rounded-full bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 flex items-center justify-center text-sm transition active:scale-90" title="Compartir este WC" aria-label="Compartir WC">
+              📤
+            </button>
+            <button id="close-detail-modal-btn" class="w-8 h-8 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-300 flex items-center justify-center font-black text-sm transition" aria-label="Cerrar ficha">
+              ✕
+            </button>
+          </div>
         </div>
 
         <!-- Contenido Scrollable -->
@@ -50,12 +66,50 @@ export function renderWcDetailModal(container) {
 
           <!-- Título y Ubicación -->
           <div>
+            <div class="flex items-center gap-2 mb-1">
+              <span class="text-[11px] font-bold text-cyan-400 bg-cyan-950/60 border border-cyan-500/30 px-2.5 py-0.5 rounded-full">
+                📍 A ${esc(distStr)} de ti
+              </span>
+              <span class="text-[11px] font-extrabold ${semantic.color === 'green' ? 'text-emerald-400' : (semantic.color === 'red' ? 'text-rose-400' : 'text-amber-400')}">
+                ${semantic.label}
+              </span>
+            </div>
             <h1 class="text-xl sm:text-2xl font-black text-white leading-tight">${esc(wc.name)}</h1>
             <p class="text-xs text-slate-400 mt-1 flex items-center gap-1.5">
-              <span>📍</span> <span>${esc(wc.address)}, ${esc(wc.city)}${wc.country ? `, ${esc(wc.country)}` : ''}</span>
+              <span>🗺️</span> <span>${esc(wc.address)}, ${esc(wc.city)}${wc.country ? `, ${esc(wc.country)}` : ''}</span>
             </p>
             ${wc.personality_desc ? `<p class="text-xs text-slate-300 italic mt-2">${esc(wc.personality_tag)} — “${esc(wc.personality_desc)}”</p>` : ''}
           </div>
+
+          <!-- Botones de Navegación Directa (Stitch Screen 2 Primary CTA) -->
+          <div class="grid grid-cols-2 gap-2.5">
+            <a href="${esc(navUrl)}" target="_blank" rel="noopener" class="tactile-cyan-btn bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-400 text-slate-950 font-black text-xs py-3 px-4 rounded-2xl shadow-lg flex items-center justify-center gap-2">
+              <span class="text-base">🧭</span>
+              <span>Cómo llegar (Ruta)</span>
+            </a>
+            <button type="button" id="detail-show-map-btn" class="tactile-btn bg-slate-800 hover:bg-slate-700 text-white border border-white/10 font-black text-xs py-3 px-4 rounded-2xl shadow flex items-center justify-center gap-2">
+              <span class="text-base">🎯</span>
+              <span>Ver en Radar</span>
+            </button>
+          </div>
+
+          ${(wc.hunter_tip || wc.access_code) ? `
+            <!-- SECRETO / TIP DEL CAZADOR Y CÓDIGO DE ACCESO -->
+            <div class="bg-gradient-to-r from-amber-950/50 via-slate-900 to-purple-950/40 border border-amber-500/40 rounded-2xl p-3.5 flex flex-col gap-1.5 shadow-lg">
+              <div class="flex items-center justify-between gap-2">
+                <span class="text-[10px] font-black uppercase tracking-wider text-amber-400 flex items-center gap-1.5">
+                  <span>💡</span> <span>INTELIGENCIA HUNTER · SECRETO DE ACCESO</span>
+                </span>
+                ${wc.access_code ? `
+                  <button type="button" id="copy-code-btn" class="text-[11px] font-black bg-amber-400/20 hover:bg-amber-400/30 text-amber-300 px-2.5 py-0.5 rounded-lg border border-amber-400/40 transition flex items-center gap-1" title="Copiar código o clave">
+                    <span>🔑 ${esc(wc.access_code)}</span>
+                    <span class="text-[9px] opacity-80">📋</span>
+                  </button>
+                ` : ''}
+              </div>
+              ${wc.hunter_tip ? `<p class="text-xs text-slate-200 font-medium leading-relaxed">${esc(wc.hunter_tip)}</p>` : ''}
+            </div>
+          ` : ''}
 
           ${photos.length ? `
             <div class="flex gap-2 overflow-x-auto no-scrollbar">
@@ -228,10 +282,10 @@ export function renderWcDetailModal(container) {
             <div class="flex items-center justify-between">
               <div class="flex items-center gap-2">
                 <span class="text-base">📝</span>
-                <h3 class="text-xs font-black uppercase tracking-wider text-white">Reporte Detallado</h3>
+                <h3 class="text-xs font-black uppercase tracking-wider text-white">Reporte Detallado & Consejo</h3>
               </div>
               <span class="text-xs font-black text-amber-400 bg-amber-400/10 px-2 py-0.5 rounded-md border border-amber-400/20">
-                +15 XP
+                +15 a +25 XP
               </span>
             </div>
 
@@ -269,11 +323,61 @@ export function renderWcDetailModal(container) {
                 </div>
               </div>
 
-              <button type="submit" class="tactile-btn w-full bg-gradient-to-r from-emerald-500 to-primary hover:from-emerald-400 text-slate-950 font-black text-xs py-3.5 rounded-2xl shadow-lg transition mt-2 flex items-center justify-center gap-1.5">
+              <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-1">
+                <input
+                  id="v2-verify-code"
+                  type="text"
+                  maxlength="40"
+                  placeholder="🔑 Código puerta (opc.)"
+                  value="${esc(wc.access_code || '')}"
+                  class="bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs font-semibold text-amber-300 placeholder-slate-500 focus:outline-none focus:border-amber-500"
+                />
+                <input
+                  id="v2-verify-comment"
+                  type="text"
+                  maxlength="220"
+                  placeholder="💬 Añade un tip o reseña para otros Hunters (+10 XP extra)..."
+                  class="sm:col-span-2 bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs font-semibold text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500"
+                />
+              </div>
+
+              <button type="submit" class="tactile-btn w-full bg-gradient-to-r from-emerald-500 to-primary hover:from-emerald-400 text-slate-950 font-black text-xs py-3.5 rounded-2xl shadow-lg transition mt-1 flex items-center justify-center gap-1.5">
                 <span>🛡️</span>
-                <span>Confirmar Reporte Completo (+15 XP)</span>
+                <span>Publicar Validación y Consejo (+15 / +25 XP)</span>
               </button>
             </form>
+          </div>
+
+          <!-- CRÓNICAS Y AVISOS RECIENTES DE CAZADORES (Feed de Comunidad Stitch Screen 2) -->
+          <div class="bg-surface-container/70 border border-white/10 rounded-3xl p-4 flex flex-col gap-3">
+            <div class="flex items-center justify-between">
+              <h3 class="text-xs font-black uppercase tracking-wider text-slate-300 flex items-center gap-1.5">
+                <span>💬</span>
+                <span>Bitácora de Cazadores (${reviews.length})</span>
+              </h3>
+              <span class="text-[10px] font-bold text-emerald-400">Tiempo real</span>
+            </div>
+
+            ${reviews.length === 0 ? `
+              <p class="text-xs text-slate-400 italic py-2 text-center">Aún no hay comentarios escritos. ¡Sé el primero en dejar una pista o código arriba (+10 XP)!</p>
+            ` : `
+              <div class="flex flex-col gap-2">
+                ${reviews.slice(0, 6).map(r => `
+                  <div class="bg-slate-950/75 border border-white/5 rounded-2xl p-3 flex items-start gap-2.5">
+                    <div class="w-8 h-8 rounded-xl bg-slate-800 border border-slate-700 flex items-center justify-center text-base flex-shrink-0">
+                      ${esc(r.avatar || '🧔‍♂️')}
+                    </div>
+                    <div class="min-w-0 flex-1">
+                      <div class="flex items-center justify-between gap-2">
+                        <span class="text-xs font-black text-amber-300 truncate">@${esc(r.username || 'Hunter')}</span>
+                        <span class="text-[10px] font-semibold text-slate-500 flex-shrink-0">${r.created_at ? formatRelativeTime(r.created_at) : 'Reciente'}</span>
+                      </div>
+                      <p class="text-xs text-slate-200 font-medium mt-1 leading-snug">${esc(r.comment)}</p>
+                    </div>
+                  </div>
+                `).join('')}
+              </div>
+            `}
           </div>
 
           <!-- DESCUBIERTO POR (Atribución del Hunter) -->
@@ -348,6 +452,62 @@ export function renderWcDetailModal(container) {
     closeBtn.addEventListener('click', () => store.closeWcDetail());
   }
 
+  // Botón Favorito
+  const favBtn = container.querySelector('#detail-fav-btn');
+  if (favBtn) {
+    favBtn.addEventListener('click', () => {
+      store.toggleFavorite(wc.id);
+      renderWcDetailModal(container);
+    });
+  }
+
+  // Botón Compartir WC
+  const shareBtn = container.querySelector('#detail-share-btn');
+  if (shareBtn) {
+    shareBtn.addEventListener('click', async () => {
+      const shareUrl = `${window.location.origin}${window.location.pathname}?wc=${encodeURIComponent(wc.id)}`;
+      const shareText = `🚽 ${wc.name} (${wc.score}/100 en WC Hunter) · ${wc.address}, ${wc.city}`;
+      if (navigator.share) {
+        try {
+          await navigator.share({ title: `WC Hunter · ${wc.name}`, text: shareText, url: shareUrl });
+          return;
+        } catch (e) {}
+      }
+      try {
+        await navigator.clipboard.writeText(`${shareText} — ${shareUrl}`);
+        store.showToast('🔗 Enlace del WC copiado al portapapeles', 'success', 2500);
+      } catch (e) {
+        store.showToast(`🔗 ${shareUrl}`, 'info', 4000);
+      }
+    });
+  }
+
+  // Botón Ver en Radar (centra mapa y abre preview)
+  const showMapBtn = container.querySelector('#detail-show-map-btn');
+  if (showMapBtn) {
+    showMapBtn.addEventListener('click', () => {
+      setMapPreviewWc(wc);
+      mapManager.panTo(wc.latitude, wc.longitude, 17);
+      store.closeWcDetail();
+      if (store.currentTab !== 'map') {
+        store.setTab('map');
+      }
+    });
+  }
+
+  // Botón copiar código de puerta
+  const copyCodeBtn = container.querySelector('#copy-code-btn');
+  if (copyCodeBtn && wc.access_code) {
+    copyCodeBtn.addEventListener('click', async () => {
+      try {
+        await navigator.clipboard.writeText(wc.access_code);
+        store.showToast(`🔑 Código "${wc.access_code}" copiado`, 'success', 2200);
+      } catch (e) {
+        store.showToast(`🔑 Código: ${wc.access_code}`, 'info', 2500);
+      }
+    });
+  }
+
   // Attach 1-Tap quick verification listeners (Stitch UI)
   const quickClean = container.querySelector('#quick-tap-clean');
   if (quickClean) {
@@ -389,22 +549,26 @@ export function renderWcDetailModal(container) {
     bindToggle('[data-v2-soap]');
     bindToggle('[data-v2-clean]');
 
-      form.addEventListener('submit', (e) => {
-        e.preventDefault();
-        const statusBtn = form.querySelector('[data-v2-status].active');
-        const paperBtn = form.querySelector('[data-v2-paper].active');
-        const soapBtn = form.querySelector('[data-v2-soap].active');
-        const cleanBtn = form.querySelector('[data-v2-clean].active');
+    form.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const statusBtn = form.querySelector('[data-v2-status].active');
+      const paperBtn = form.querySelector('[data-v2-paper].active');
+      const soapBtn = form.querySelector('[data-v2-soap].active');
+      const cleanBtn = form.querySelector('[data-v2-clean].active');
+      const commentInput = form.querySelector('#v2-verify-comment');
+      const codeInput = form.querySelector('#v2-verify-code');
 
-        const report = {
-          status: statusBtn?.getAttribute('data-v2-status') || 'open',
-          has_paper: paperBtn?.getAttribute('data-v2-paper') === 'true',
-          has_soap: soapBtn?.getAttribute('data-v2-soap') === 'true',
-          cleanliness: cleanBtn?.getAttribute('data-v2-clean') || 'normal'
-        };
+      const report = {
+        status: statusBtn?.getAttribute('data-v2-status') || 'open',
+        has_paper: paperBtn?.getAttribute('data-v2-paper') === 'true',
+        has_soap: soapBtn?.getAttribute('data-v2-soap') === 'true',
+        cleanliness: cleanBtn?.getAttribute('data-v2-clean') || 'normal',
+        comment: commentInput ? commentInput.value : '',
+        access_code: codeInput ? codeInput.value : ''
+      };
 
-        // verifyWC lanza el toast de XP y notifica WC_VERIFIED (app.js repinta la ficha)
-        store.verifyWC(wc.id, report);
-      });
+      // verifyWC lanza el toast de XP y notifica WC_VERIFIED (app.js repinta la ficha)
+      store.verifyWC(wc.id, report);
+    });
   }
 }
