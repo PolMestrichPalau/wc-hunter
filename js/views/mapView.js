@@ -82,20 +82,30 @@ export function renderMapView(container) {
           </button>
         </div>
 
-        <!-- Selector Rápido de Ciudades Radar -->
-        <div class="flex items-center gap-1.5 overflow-x-auto no-scrollbar pointer-events-auto">
-          <span class="text-[10px] font-black uppercase tracking-wider text-slate-400 bg-slate-950/80 px-2 py-1 rounded-lg border border-white/5 flex-shrink-0">
-            🏙️ Radar:
-          </span>
-          ${CITIES_QUICK_JUMP.map(c => `
-            <button
-              type="button"
-              data-city-jump="${esc(c.id)}"
-              class="text-[11px] font-extrabold px-2.5 py-1 rounded-xl border transition flex-shrink-0 ${activeCity.includes(c.id) ? 'bg-cyan-500/20 border-cyan-400 text-cyan-300 shadow' : 'bg-slate-900/85 border-white/10 text-slate-300 hover:text-white'}"
-            >
-              ${esc(c.name)}
-            </button>
-          `).join('')}
+        <!-- Selector Rápido de Ciudades Radar + Modo Mapa -->
+        <div class="flex items-center justify-between gap-1.5 overflow-x-auto no-scrollbar pointer-events-auto">
+          <div class="flex items-center gap-1.5">
+            <span class="text-[10px] font-black uppercase tracking-wider text-slate-400 bg-slate-950/80 px-2 py-1 rounded-lg border border-white/5 flex-shrink-0">
+              🏙️ Radar:
+            </span>
+            ${CITIES_QUICK_JUMP.map(c => `
+              <button
+                type="button"
+                data-city-jump="${esc(c.id)}"
+                class="text-[11px] font-extrabold px-2.5 py-1 rounded-xl border transition flex-shrink-0 ${activeCity.includes(c.id) ? 'bg-cyan-500/20 border-cyan-400 text-cyan-300 shadow' : 'bg-slate-900/85 border-white/10 text-slate-300 hover:text-white'}"
+              >
+                ${esc(c.name)}
+              </button>
+            `).join('')}
+          </div>
+          <button
+            type="button"
+            id="map-theme-btn"
+            class="text-[11px] font-extrabold px-2.5 py-1 rounded-xl border border-white/15 bg-slate-900/90 text-amber-300 hover:text-white transition flex-shrink-0"
+            title="Cambiar entre Radar Táctico Oscuro y Mapa Claro"
+          >
+            ${mapManager.lightMode ? '☀️ Día' : '🌙 Táctico'}
+          </button>
         </div>
       </div>
 
@@ -159,6 +169,15 @@ export function renderMapView(container) {
   if (locateBtn) {
     locateBtn.addEventListener('click', () => {
       mapManager.locateUser();
+    });
+  }
+
+  // Event listener del botón Modo Mapa (Táctico Oscuro / Día)
+  const themeBtn = container.querySelector('#map-theme-btn');
+  if (themeBtn) {
+    themeBtn.addEventListener('click', () => {
+      const isLight = mapManager.toggleMapTheme();
+      themeBtn.textContent = isLight ? '☀️ Día' : '🌙 Táctico';
     });
   }
 

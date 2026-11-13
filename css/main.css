@@ -92,9 +92,14 @@
   animation: radarPing 2.2s cubic-bezier(0, 0.2, 0.8, 1) infinite;
 }
 
-/* Dark Map Tile Layer Tuning for Leaflet */
+/* Dark Map Tile Layer Tuning for Leaflet (100% Free OpenStreetMap + Tactical Dark Filter) */
 .leaflet-tile-pane {
-  filter: brightness(0.9) contrast(1.1);
+  filter: invert(100%) hue-rotate(180deg) brightness(93%) contrast(92%) saturate(85%);
+  transition: filter 0.25s ease;
+}
+
+#map-container.map-light-mode .leaflet-tile-pane {
+  filter: brightness(98%) contrast(102%);
 }
 
 * {

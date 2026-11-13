@@ -15,6 +15,15 @@ class MapManager {
     this.initialized = false;
     this.onMarkerClickCallback = null;
     this.lastView = null; // vista (centro/zoom) para no perderla al cambiar de pestaña
+    this.lightMode = false;
+  }
+
+  toggleMapTheme() {
+    this.lightMode = !this.lightMode;
+    const el = document.getElementById('map-container');
+    if (el) el.classList.toggle('map-light-mode', this.lightMode);
+    store.showToast(this.lightMode ? '☀️ Mapa en modo Día (Claro)' : '🌙 Mapa en modo Radar Oscuro', 'info', 2000);
+    return this.lightMode;
   }
 
   /** Guarda la vista y destruye el mapa (al salir de la pestaña Mapa) */
@@ -77,20 +86,21 @@ class MapManager {
 
       window.L.control.zoom({ position: 'bottomright' }).addTo(this.map);
 
-      // CartoDB Dark Matter con fallback automático a OpenStreetMap en caso de error
-      const tiles = window.L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> &copy; <a href="https://carto.com/" target="_blank" rel="noopener">CARTO</a>',
-        subdomains: 'abcd',
+      el.classList.toggle('map-light-mode', Boolean(this.lightMode));
+
+      // OpenStreetMap 100% libre y gratuito (0 API Keys, sin marcas de agua) + filtro Dark-Radar CSS
+      const tiles = window.L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a>',
         maxZoom: 19
       });
 
-      // Leaflet entrega UN solo objeto de evento con { tile, coords }
+      // Fallback automático a OSM Humanitarian (también 100% libre sin API key)
       tiles.on('tileerror', (e) => {
         const tile = e && e.tile;
         const coords = e && e.coords;
         if (tile && coords && !tile._fallbackDone) {
           tile._fallbackDone = true;
-          tile.src = `https://tile.openstreetmap.org/${coords.z}/${coords.x}/${coords.y}.png`;
+          tile.src = `https://a.tile.openstreetmap.fr/hot/${coords.z}/${coords.x}/${coords.y}.png`;
         }
       });
 
