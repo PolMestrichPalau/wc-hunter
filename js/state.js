@@ -7,6 +7,7 @@ import { calculateLevel } from './engines/gameEngine.js';
 import { calculateWCScore, calculateConfidence } from './engines/wcEngine.js';
 import { UNLOCKED_TITLES_POOL, getAchievementProgress } from './engines/userEngine.js';
 import { backend, rowToWc, describeError } from './backend.js';
+import { scanNearbyOsmToilets } from './geo.js';
 
 const STORAGE_KEY = 'wc_hunter_state_v2';
 const BACKUP_KEY = 'wc_hunter_state_v2_backup';
@@ -677,6 +678,21 @@ class Store {
       if (!wc.hunter_tip) wc.hunter_tip = cleanComment;
     }
 
+    // Guardar foto aportada por el cazador
+    let photoBonus = 0;
+    if (report.photo) {
+      if (!Array.isArray(wc.photos)) wc.photos = [];
+      wc.photos.unshift({
+        url: report.photo,
+        caption: cleanComment || 'Foto verificada',
+        hunter: this.user.username || 'Hunter',
+        created_at: new Date(now).toISOString()
+      });
+      wc.photos = wc.photos.slice(0, 8);
+      this.user.stats.photos_count = (this.user.stats.photos_count || 0) + 1;
+      photoBonus = 10;
+    }
+
     // Recalcular puntuaciones
     wc.verified_by_count = (wc.verified_by_count || 0) + 1;
     wc.reviews_count = (wc.reviews_count || 0) + 1;
@@ -691,8 +707,11 @@ class Store {
     this.checkAchievement('first_wc');
     this.checkContextAchievements(wc);
     this.syncProgressAchievements();
-    const baseXp = calculateXPForAction('VERIFICATION') + (cleanComment ? 10 : 0);
-    this.addXP(baseXp, cleanComment ? 'Verificación + Consejo Hunter' : 'Verificación rápida');
+    const baseXp = calculateXPForAction('VERIFICATION') + (cleanComment ? 10 : 0) + photoBonus;
+    const reasons = ['Verificación rápida'];
+    if (cleanComment) reasons.push('+ Consejo');
+    if (photoBonus) reasons.push('+ Foto');
+    this.addXP(baseXp, reasons.join(' '));
 
     this.notify('WC_VERIFIED', wc);
     return true;
@@ -766,7 +785,12 @@ class Store {
       last_verified_at: new Date().toISOString(),
       would_return_ratio: { yes: 1, no: 0 },
       is_secret: Boolean(data.is_secret),
-      photos: [],
+      photos: data.photo ? [{
+        url: data.photo,
+        caption: 'Foto de descubrimiento',
+        hunter: this.user.username,
+        created_at: new Date().toISOString()
+      }] : [],
       recent_reviews: String(data.comment || '').trim() ? [{
         username: this.user.username || 'Hunter',
         avatar: this.user.avatar || '🧔‍♂️',
@@ -803,6 +827,9 @@ class Store {
       this.user.stats.secrets_found++;
       this.checkMissions('secret');
     }
+    if (data.photo) {
+      this.user.stats.photos_count = (this.user.stats.photos_count || 0) + 1;
+    }
     this.syncProgressAchievements();
 
     if (xpAllowed) {
@@ -820,6 +847,110 @@ class Store {
     if (openDetail) this.openWcDetail(newWC.id);
     this.notify('WC_CREATED', newWC);
     return true;
+  }
+
+  /**
+   * Escáner en vivo de baños reales mediante OpenStreetMap Nominatim (100% libre, sin API key).
+   * Incorpora nuevos baños sin valorar ('?') para explorar.
+   */
+  async scanOsmRadar(lat, lng) {
+    const targetLat = Number.isFinite(lat) ? lat : this.userLocation.lat;
+    const targetLng = Number.isFinite(lng) ? lng : this.userLocation.lng;
+
+    const detected = await scanNearbyOsmToilets(targetLat, targetLng, 2500);
+    if (!Array.isArray(detected) || detected.length === 0) {
+      return 0;
+    }
+
+    let addedCount = 0;
+    const existingCoords = this.wcs.map(w => ({ lat: w.latitude, lng: w.longitude, id: w.id }));
+
+    detected.forEach(osmWc => {
+      const isDuplicate = existingCoords.some(ex => {
+        if (ex.id === osmWc.id) return true;
+        const dLat = Math.abs(ex.lat - osmWc.latitude);
+        const dLng = Math.abs(ex.lng - osmWc.longitude);
+        return dLat < 0.00035 && dLng < 0.00035; // ~35 metros
+      });
+      if (!isDuplicate) {
+        this.wcs.push(osmWc);
+        existingCoords.push({ lat: osmWc.latitude, lng: osmWc.longitude, id: osmWc.id });
+        addedCount++;
+      }
+    });
+
+    if (addedCount > 0) {
+      this.saveState();
+      this.notify('WCS_UPDATED', this.wcs);
+    }
+    return addedCount;
+  }
+
+  /**
+   * Exporta la partida y datos del usuario a un archivo JSON de respaldo descargable.
+   */
+  exportBackupJson() {
+    const backupData = {
+      app: 'WC_HUNTER',
+      version: '6.0',
+      exported_at: new Date().toISOString(),
+      user: this.user,
+      custom_wcs: this.wcs.filter(w => !w.id.startsWith('wc_mad_') && !w.id.startsWith('wc_bcn_') && !w.id.startsWith('wc_val_') && !w.id.startsWith('wc_sev_')),
+      favorites: this.user.favorites || [],
+      missions: this.missions
+    };
+
+    const jsonStr = JSON.stringify(backupData, null, 2);
+    const blob = new Blob([jsonStr], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    const dateStr = new Date().toISOString().slice(0, 10);
+    a.download = `wc-hunter-backup-${this.user.username || 'cazador'}-${dateStr}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    this.showToast('💾 Copia de seguridad guardada con éxito', 'success');
+  }
+
+  /**
+   * Importa y restaura una partida desde un archivo JSON.
+   */
+  importBackupJson(jsonString) {
+    try {
+      const data = typeof jsonString === 'string' ? JSON.parse(jsonString) : jsonString;
+      if (!data || data.app !== 'WC_HUNTER') {
+        this.showToast('⚠️ Archivo de copia no compatible con WC Hunter.', 'info');
+        return false;
+      }
+
+      if (data.user) {
+        this.user = this.normalizeUser({ ...this.user, ...data.user });
+      }
+
+      if (Array.isArray(data.custom_wcs)) {
+        const existingIds = new Set(this.wcs.map(w => w.id));
+        data.custom_wcs.forEach(cw => {
+          if (cw && cw.id && !existingIds.has(cw.id)) {
+            const norm = this.normalizeWc(cw);
+            if (norm) {
+              this.wcs.unshift(norm);
+              existingIds.add(norm.id);
+            }
+          }
+        });
+      }
+
+      this.saveState();
+      this.notify('USER_UPDATED', this.user);
+      this.notify('WCS_UPDATED', this.wcs);
+      this.showToast('🎉 ¡Partida y logros restaurados con éxito!', 'success', 3500);
+      return true;
+    } catch (e) {
+      this.showToast('❌ Error al procesar el archivo JSON de copia.', 'info');
+      return false;
+    }
   }
 
   // Filtra la lista de WCs según búsqueda e intención

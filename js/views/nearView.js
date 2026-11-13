@@ -3,6 +3,7 @@
  * Herramienta funcional inmediata para emergencias y filtrado por necesidad directa.
  */
 import { store } from '../state.js';
+import { mapManager } from '../map.js';
 import { getSemanticStatus, formatRelativeTime, calculateDistanceMeters, formatWouldReturn, formatAccessShort, formatDistance, formatWalkTime } from '../engines/wcEngine.js';
 import { esc } from '../utils.js';
 
@@ -207,11 +208,13 @@ export function renderNearView(container) {
               <!-- Línea 3: Métrica Volvería + Botón Directo Ruta GPS -->
               <div class="flex items-center justify-between gap-2 text-[11px] bg-slate-950/60 rounded-xl px-3 py-2 border border-white/5">
                 <span class="text-emerald-400 font-black truncate">👍 ${wouldRet.sentence}</span>
-                <div class="flex items-center gap-2 flex-shrink-0">
-                  <a href="${esc(navUrl)}" target="_blank" rel="noopener" class="rescue-nav-link bg-cyan-500/20 hover:bg-cyan-500/30 border border-cyan-400/50 text-cyan-300 font-black px-2.5 py-1 rounded-lg transition flex items-center gap-1">
-                    <span>🧭</span> <span>IR AHORA</span>
+                <div class="flex items-center gap-1.5 flex-shrink-0">
+                  <button type="button" data-rescue-route="${esc(wc.id)}" class="rescue-route-btn bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-400/50 text-emerald-300 font-black px-2.5 py-1 rounded-lg transition flex items-center gap-1">
+                    <span>🧭</span> <span>Ruta Radar</span>
+                  </button>
+                  <a href="${esc(navUrl)}" target="_blank" rel="noopener" class="rescue-nav-link bg-cyan-500/20 hover:bg-cyan-500/30 border border-cyan-400/50 text-cyan-300 font-black px-2 py-1 rounded-lg transition flex items-center gap-1">
+                    <span>↗ GPS</span>
                   </a>
-                  <span class="text-slate-400 font-bold hidden sm:inline">Ficha →</span>
                 </div>
               </div>
             </div>
@@ -233,6 +236,19 @@ export function renderNearView(container) {
 
   container.querySelectorAll('.rescue-nav-link').forEach(link => {
     link.addEventListener('click', (e) => e.stopPropagation());
+  });
+
+  container.querySelectorAll('.rescue-route-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const wcId = btn.getAttribute('data-rescue-route');
+      const wc = store.wcs.find(w => w.id === wcId);
+      if (!wc) return;
+      store.setTab('map');
+      setTimeout(() => {
+        mapManager.drawTacticalRoute(wc.latitude, wc.longitude, wc.name);
+      }, 100);
+    });
   });
 
   const cards = container.querySelectorAll('.wc-rescue-card');

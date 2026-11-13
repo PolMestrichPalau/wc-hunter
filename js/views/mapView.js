@@ -45,6 +45,14 @@ export function renderMapView(container) {
             <span class="hidden sm:inline font-extrabold">Mi GPS</span>
           </button>
           <button
+            id="map-scan-btn"
+            class="bg-surface-container/95 hover:bg-slate-800 text-cyan-300 font-black text-xs px-3 py-3 rounded-2xl shadow-xl border border-cyan-500/40 flex items-center gap-1 pointer-events-auto flex-shrink-0 transition active:scale-95"
+            title="Escanear baños reales de OpenStreetMap en esta zona"
+          >
+            <span class="text-sm">🛰️</span>
+            <span class="hidden sm:inline font-extrabold">Escanear</span>
+          </button>
+          <button
             id="map-add-wc-btn"
             class="tactile-amber-btn bg-gradient-to-r from-amber-500 to-yellow-400 hover:from-amber-400 text-slate-950 font-black text-xs px-3.5 py-3 rounded-2xl shadow-xl flex items-center gap-1.5 pointer-events-auto flex-shrink-0"
             title="Check-in o descubrir un WC nuevo"
@@ -169,6 +177,32 @@ export function renderMapView(container) {
   if (locateBtn) {
     locateBtn.addEventListener('click', () => {
       mapManager.locateUser();
+    });
+  }
+
+  // Event listener del botón Escanear Satélite OSM
+  const scanBtn = container.querySelector('#map-scan-btn');
+  if (scanBtn) {
+    scanBtn.addEventListener('click', async () => {
+      const origHtml = scanBtn.innerHTML;
+      scanBtn.innerHTML = '<span class="text-sm animate-spin">📡</span><span class="hidden sm:inline font-extrabold">Buscando...</span>';
+      scanBtn.disabled = true;
+      try {
+        const center = mapManager.map ? mapManager.map.getCenter() : store.userLocation;
+        store.showToast('🛰️ Escaneando satélite OSM en un radio de 2.5 km...', 'info', 2500);
+        const count = await store.scanOsmRadar(center.lat, center.lng);
+        if (count > 0) {
+          store.showToast(`🛰️ ¡${count} baños reales detectados y añadidos al radar!`, 'success', 4000);
+          mapManager.renderMarkers();
+        } else {
+          store.showToast('🛰️ Zona escaneada. No se encontraron nuevos baños de OSM aquí.', 'info', 3000);
+        }
+      } catch (e) {
+        store.showToast('🛰️ No se pudo completar el escaneo satélite.', 'info', 3000);
+      } finally {
+        scanBtn.innerHTML = origHtml;
+        scanBtn.disabled = false;
+      }
     });
   }
 
@@ -309,16 +343,19 @@ function renderPreviewCardHtml(wc) {
       </div>
 
       <!-- Botones de Acción Táctiles -->
-      <div class="flex items-center gap-2">
-        <button id="preview-open-sheet-btn" class="tactile-btn flex-1 bg-gradient-to-r from-emerald-500 to-primary hover:from-emerald-400 hover:to-emerald-500 text-slate-950 font-black text-xs py-3 px-3 rounded-2xl shadow-lg flex items-center justify-center gap-1.5">
+      <div class="flex items-center gap-1.5">
+        <button id="preview-open-sheet-btn" class="tactile-btn flex-1 bg-gradient-to-r from-emerald-500 to-primary hover:from-emerald-400 hover:to-emerald-500 text-slate-950 font-black text-xs py-3 px-2.5 rounded-2xl shadow-lg flex items-center justify-center gap-1">
           <span>📋</span>
-          <span>Ficha y Validar (+15 XP)</span>
+          <span class="truncate">Ficha (+15 XP)</span>
         </button>
-        <a href="${esc(navUrl)}" target="_blank" rel="noopener" class="tactile-cyan-btn bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-400 text-slate-950 font-black text-xs py-3 px-3.5 rounded-2xl shadow-lg flex items-center justify-center gap-1.5 flex-shrink-0" title="Abrir ruta a pie en Google Maps">
+        <button id="preview-radar-route-btn" type="button" class="tactile-cyan-btn bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-400 text-slate-950 font-black text-xs py-3 px-3 rounded-2xl shadow-lg flex items-center justify-center gap-1 flex-shrink-0" title="Trazar ruta táctica directa en este mapa">
           <span>🧭</span>
-          <span>Ir</span>
+          <span>Ruta</span>
+        </button>
+        <a href="${esc(navUrl)}" target="_blank" rel="noopener" class="bg-slate-800 hover:bg-slate-700 text-slate-200 font-black text-xs py-3 px-2.5 rounded-2xl border border-white/10 flex items-center justify-center gap-1 flex-shrink-0" title="Abrir ruta en Google Maps">
+          <span>↗ GPS</span>
         </a>
-        <button id="preview-dismiss-btn" class="bg-slate-800 hover:bg-slate-700 text-slate-300 font-black text-xs px-3 py-3 rounded-2xl border border-white/10 transition flex-shrink-0" title="Cerrar">
+        <button id="preview-dismiss-btn" class="bg-slate-800 hover:bg-slate-700 text-slate-300 font-black text-xs px-2.5 py-3 rounded-2xl border border-white/10 transition flex-shrink-0" title="Cerrar">
           ✕
         </button>
       </div>
@@ -331,6 +368,19 @@ function attachPreviewEvents(drawer) {
   if (openBtn && previewWc) {
     openBtn.addEventListener('click', () => {
       store.openWcDetail(previewWc.id);
+    });
+  }
+
+  const routeBtn = drawer.querySelector('#preview-radar-route-btn');
+  if (routeBtn && previewWc) {
+    routeBtn.addEventListener('click', () => {
+      const targetWc = previewWc;
+      previewWc = null;
+      drawer.classList.add('translate-y-24', 'opacity-0', 'pointer-events-none');
+      drawer.classList.remove('translate-y-0', 'opacity-100');
+      const pWrapper = document.querySelector('.panic-floating-wrapper');
+      if (pWrapper) pWrapper.classList.remove('hidden');
+      mapManager.drawTacticalRoute(targetWc.latitude, targetWc.longitude, targetWc.name);
     });
   }
 

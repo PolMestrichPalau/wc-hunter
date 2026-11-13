@@ -40,10 +40,25 @@ export async function makePhotoVersions(file) {
   return { full, thumb };
 }
 
-/** Devuelve la URL solo si es http(s); si no, cadena vacía (evita javascript:). */
+/**
+ * Convierte un Blob o File a cadena Base64 (data:image/...).
+ */
+export function blobToBase64(blob) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onloadend = () => resolve(reader.result);
+    reader.onerror = reject;
+    reader.readAsDataURL(blob);
+  });
+}
+
+/** Devuelve la URL solo si es http(s) o data:image/; si no, cadena vacía (evita javascript:). */
 export function safeUrl(url) {
+  if (!url || typeof url !== 'string') return '';
+  const trimmed = url.trim();
+  if (trimmed.startsWith('data:image/')) return trimmed;
   try {
-    const u = new URL(url);
+    const u = new URL(trimmed);
     return (u.protocol === 'https:' || u.protocol === 'http:') ? u.href : '';
   } catch (e) {
     return '';

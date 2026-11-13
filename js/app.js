@@ -101,6 +101,16 @@ class App {
       });
     }
 
+    // Captura del evento de instalación PWA
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      window.deferredInstallPrompt = e;
+    });
+    window.addEventListener('appinstalled', () => {
+      window.deferredInstallPrompt = null;
+      store.showToast('📲 ¡WC Hunter instalado en tu pantalla!', 'success');
+    });
+
     // Accesibilidad: Esc cierra el modal abierto
     document.addEventListener('keydown', (e) => {
       if (e.key !== 'Escape') return;

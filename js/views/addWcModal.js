@@ -4,7 +4,7 @@
  * de ciudad / país / dirección mediante geocodificación inversa.
  */
 import { store } from '../state.js';
-import { esc } from '../utils.js';
+import { esc, makePhotoVersions, blobToBase64 } from '../utils.js';
 import { reverseGeocode } from '../geo.js';
 
 let pickerMap = null;
@@ -221,6 +221,19 @@ export function renderAddWcModal(container) {
             ></textarea>
           </div>
 
+          <!-- Foto opcional del WC -->
+          <div>
+            <label class="block text-xs font-black uppercase text-slate-300 mb-1">Foto del Lugar (Opcional · +10 XP)</label>
+            <input type="file" id="add-wc-photo-file" accept="image/*" capture="environment" class="hidden" />
+            <button type="button" id="add-wc-photo-trigger" class="w-full flex items-center justify-center gap-2 py-3 rounded-xl border border-dashed border-slate-600 hover:border-amber-400 text-slate-300 hover:text-white text-xs font-bold transition">
+              <span id="add-wc-photo-text">📸 Añadir foto del baño</span>
+            </button>
+            <div id="add-wc-photo-preview-wrap" class="hidden mt-2 relative">
+              <img id="add-wc-photo-img" src="" alt="Vista previa" class="h-24 rounded-xl object-cover border border-white/10" />
+              <button type="button" id="add-wc-photo-clear" class="absolute top-1 left-28 bg-slate-900/90 text-rose-400 border border-rose-500/40 rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold" title="Quitar foto">✕</button>
+            </div>
+          </div>
+
           <button
             type="submit"
             class="tactile-amber-btn w-full bg-gradient-to-r from-amber-500 to-yellow-400 hover:from-amber-400 text-slate-950 font-black text-sm py-3.5 rounded-2xl shadow-xl transition mt-2 flex items-center justify-center gap-2"
@@ -318,7 +331,40 @@ export function renderAddWcModal(container) {
     });
   }
 
-  form.addEventListener('submit', (e) => {
+  let selectedPhotoBlob = null;
+  const photoInput = form.querySelector('#add-wc-photo-file');
+  const photoTrigger = form.querySelector('#add-wc-photo-trigger');
+  const photoPreviewWrap = form.querySelector('#add-wc-photo-preview-wrap');
+  const photoImg = form.querySelector('#add-wc-photo-img');
+  const photoClear = form.querySelector('#add-wc-photo-clear');
+
+  if (photoTrigger && photoInput) {
+    photoTrigger.addEventListener('click', () => photoInput.click());
+    photoInput.addEventListener('change', async (e) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+      try {
+        const { thumb } = await makePhotoVersions(file);
+        selectedPhotoBlob = thumb;
+        if (photoImg && photoPreviewWrap) {
+          photoImg.src = URL.createObjectURL(thumb);
+          photoPreviewWrap.classList.remove('hidden');
+          photoTrigger.classList.add('hidden');
+        }
+      } catch (err) {}
+    });
+  }
+
+  if (photoClear) {
+    photoClear.addEventListener('click', () => {
+      selectedPhotoBlob = null;
+      if (photoInput) photoInput.value = '';
+      if (photoPreviewWrap) photoPreviewWrap.classList.add('hidden');
+      if (photoTrigger) photoTrigger.classList.remove('hidden');
+    });
+  }
+
+  form.addEventListener('submit', async (e) => {
     e.preventDefault();
     const fd = new FormData(form);
 
@@ -329,6 +375,13 @@ export function renderAddWcModal(container) {
     else if (accessType === 'paid') accessLabel = `💰 ${price.toFixed(2)} €`;
     else if (accessType === 'key_required') accessLabel = '🔑 Pedir llave en mostrador';
     else if (accessType === 'code_required') accessLabel = '🔢 Código necesario';
+
+    let photoBase64 = null;
+    if (selectedPhotoBlob) {
+      try {
+        photoBase64 = await blobToBase64(selectedPhotoBlob);
+      } catch (err) {}
+    }
 
     const data = {
       name: fd.get('name'),
@@ -347,7 +400,8 @@ export function renderAddWcModal(container) {
       baby_changing: fd.get('baby_changing') === 'on',
       wheelchair: fd.get('wheelchair') === 'on',
       initial_rating: parseInt(fd.get('initial_rating'), 10) || 4,
-      comment: fd.get('comment') || ''
+      comment: fd.get('comment') || '',
+      photo: photoBase64
     };
 
     // Si el alta falla (validacion) el modal permanece abierto con los datos

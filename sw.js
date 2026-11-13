@@ -2,7 +2,7 @@
 // Siempre intenta la red (así las actualizaciones llegan al instante) y guarda copia
 // de los recursos del propio sitio para poder abrir la app sin conexión.
 // Nota: Tailwind/Leaflet/fuentes se cargan de CDN; sin conexión la interfaz puede verse sin estilos.
-const CACHE = 'wc-hunter-v5.6';
+const CACHE = 'wc-hunter-v6.0';
 
 self.addEventListener('install', () => {
   self.skipWaiting();

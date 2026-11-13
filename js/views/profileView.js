@@ -53,6 +53,10 @@ export function renderProfileView(container) {
             <span class="text-sm">🛡️</span>
             <span class="text-xs font-bold text-emerald-300">Reputación: <strong>${esc(user.reputation)}% Fiable</strong></span>
           </div>
+          <button type="button" id="generate-card-btn" class="tactile-amber-btn bg-gradient-to-r from-amber-500 to-yellow-400 hover:from-amber-400 text-slate-950 font-black text-xs px-3.5 py-1.5 rounded-xl shadow-lg flex items-center gap-1.5 transition active:scale-95">
+            <span>🪪</span>
+            <span>Carnet Hunter</span>
+          </button>
           <button type="button" id="toggle-sound-btn" class="bg-slate-900 border border-slate-700 hover:border-slate-600 rounded-xl px-3 py-1.5 text-xs font-bold text-slate-300 flex items-center gap-1.5 transition">
             <span>${user.sound_enabled !== false ? '🔊' : '🔇'}</span>
             <span>Sonido: ${user.sound_enabled !== false ? 'ON' : 'OFF'}</span>
@@ -239,6 +243,36 @@ export function renderProfileView(container) {
           </div>
         </div>
 
+        <!-- 4. ⚙️ PWA & COPIA DE SEGURIDAD -->
+        <div class="bg-slate-900/80 border border-slate-800 rounded-3xl p-5 flex flex-col gap-3.5 shadow-md">
+          <div class="flex items-center justify-between">
+            <h2 class="text-xs font-black uppercase tracking-wider text-slate-300 flex items-center gap-2">
+              <span>⚙️</span>
+              <span>App PWA & Copia de Seguridad</span>
+            </h2>
+            <span class="text-xs text-cyan-400 font-bold">Local-First</span>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+            <button id="pwa-install-btn" type="button" class="bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-500 text-slate-950 font-black text-xs p-3.5 rounded-2xl flex flex-col items-center justify-center gap-1.5 shadow transition active:scale-95 text-center">
+              <span class="text-2xl">📲</span>
+              <span>Instalar en Pantalla</span>
+              <span class="text-[9px] font-bold text-slate-900/80">Abrir sin barras de navegador</span>
+            </button>
+            <button id="export-backup-btn" type="button" class="bg-slate-800 hover:bg-slate-700 border border-slate-700/80 text-white font-black text-xs p-3.5 rounded-2xl flex flex-col items-center justify-center gap-1.5 shadow transition active:scale-95 text-center">
+              <span class="text-2xl">💾</span>
+              <span>Exportar Partida</span>
+              <span class="text-[9px] font-bold text-slate-400">Descargar copia .json</span>
+            </button>
+            <label class="bg-slate-800 hover:bg-slate-700 border border-slate-700/80 text-white font-black text-xs p-3.5 rounded-2xl flex flex-col items-center justify-center gap-1.5 shadow transition active:scale-95 text-center cursor-pointer">
+              <span class="text-2xl">📂</span>
+              <span>Restaurar Partida</span>
+              <span class="text-[9px] font-bold text-slate-400">Importar archivo .json</span>
+              <input type="file" id="import-backup-file" accept=".json,application/json" class="hidden" />
+            </label>
+          </div>
+        </div>
+
       </div>
     </div>
   `;
@@ -289,6 +323,48 @@ export function renderProfileView(container) {
     renderProfileView(container);
   });
 
+  // Generador de Carnet Oficial Hunter
+  container.querySelector('#generate-card-btn')?.addEventListener('click', () => {
+    generateAndShowHunterCard(user, levelInfo);
+  });
+
+  // PWA Instalación
+  container.querySelector('#pwa-install-btn')?.addEventListener('click', async () => {
+    if (window.deferredInstallPrompt) {
+      window.deferredInstallPrompt.prompt();
+      const choice = await window.deferredInstallPrompt.userChoice;
+      if (choice.outcome === 'accepted') {
+        store.showToast('📲 ¡WC Hunter instalado en tu pantalla!', 'success');
+      }
+      window.deferredInstallPrompt = null;
+    } else {
+      // Instrucciones universales para iPhone Safari / Chrome
+      const isIos = /iphone|ipad|ipod/i.test(navigator.userAgent);
+      if (isIos) {
+        window.alert('Para instalar en iPhone/iPad:\n1. Pulsa el botón "Compartir" 📤 en Safari\n2. Elige "Añadir a pantalla de inicio" 📲');
+      } else {
+        store.showToast('ℹ️ En el menú de tu navegador (⋮), pulsa "Instalar aplicación" o "Añadir a pantalla de inicio".', 'info', 5000);
+      }
+    }
+  });
+
+  // Exportar Copia de Seguridad JSON
+  container.querySelector('#export-backup-btn')?.addEventListener('click', () => {
+    store.exportBackupJson();
+  });
+
+  // Importar y Restaurar Copia de Seguridad JSON
+  container.querySelector('#import-backup-file')?.addEventListener('change', (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (evt) => {
+      const ok = store.importBackupJson(evt.target.result);
+      if (ok) renderProfileView(container);
+    };
+    reader.readAsText(file);
+  });
+
   // Abrir ficha desde Mis Favoritos
   container.querySelectorAll('.fav-wc-card').forEach(card => {
     card.addEventListener('click', () => {
@@ -309,5 +385,201 @@ export function renderProfileView(container) {
       store.showToast(`🏷️ Título cambiado a: ${chosen}`, 'info');
       renderProfileView(container);
     });
+  });
+}
+
+/**
+ * Genera el Carnet Oficial de Cazador mediante Canvas 2D y abre el visor de descarga/compartir.
+ */
+function generateAndShowHunterCard(user, levelInfo) {
+  const canvas = document.createElement('canvas');
+  canvas.width = 720;
+  canvas.height = 430;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return;
+
+  // Fondo degradado cyberpunk oscuro
+  const bgGrad = ctx.createLinearGradient(0, 0, 720, 430);
+  bgGrad.addColorStop(0, '#0f172a');
+  bgGrad.addColorStop(0.5, '#090d16');
+  bgGrad.addColorStop(1, '#020617');
+  ctx.fillStyle = bgGrad;
+  ctx.fillRect(0, 0, 720, 430);
+
+  // Rejilla táctica tenue
+  ctx.strokeStyle = 'rgba(255, 255, 255, 0.03)';
+  ctx.lineWidth = 1;
+  for (let x = 0; x < 720; x += 30) {
+    ctx.beginPath();
+    ctx.moveTo(x, 0);
+    ctx.lineTo(x, 430);
+    ctx.stroke();
+  }
+  for (let y = 0; y < 430; y += 30) {
+    ctx.beginPath();
+    ctx.moveTo(0, y);
+    ctx.lineTo(720, y);
+    ctx.stroke();
+  }
+
+  // Marco exterior neón
+  ctx.strokeStyle = '#10b981';
+  ctx.lineWidth = 3;
+  ctx.strokeRect(16, 16, 688, 398);
+
+  ctx.strokeStyle = '#f59e0b';
+  ctx.lineWidth = 1;
+  ctx.strokeRect(22, 22, 676, 386);
+
+  // Cabecera
+  ctx.fillStyle = '#f59e0b';
+  ctx.font = '900 13px "Plus Jakarta Sans", sans-serif';
+  ctx.fillText('WC HUNTER · LICENCIA OFICIAL DE CAZADOR DE TRONOS', 40, 52);
+
+  ctx.fillStyle = '#94a3b8';
+  ctx.font = '700 10px "Plus Jakarta Sans", sans-serif';
+  ctx.fillText('URBAN SANITATION RADAR · DIVISIÓN DE EXPLORACIÓN', 40, 68);
+
+  // Línea divisoria cabecera
+  ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
+  ctx.beginPath();
+  ctx.moveTo(40, 80);
+  ctx.lineTo(680, 80);
+  ctx.stroke();
+
+  // Contenedor Avatar
+  ctx.fillStyle = 'rgba(16, 185, 129, 0.12)';
+  ctx.fillRect(40, 100, 130, 150);
+  ctx.strokeStyle = '#10b981';
+  ctx.lineWidth = 2;
+  ctx.strokeRect(40, 100, 130, 150);
+
+  ctx.font = '74px sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText(user.avatar || '🧔‍♂️', 105, 185);
+
+  ctx.fillStyle = '#10b981';
+  ctx.fillRect(40, 224, 130, 26);
+  ctx.fillStyle = '#020617';
+  ctx.font = '900 11px "Plus Jakarta Sans", sans-serif';
+  ctx.fillText(`NIVEL ${levelInfo.level}`, 105, 241);
+
+  // Datos del Cazador
+  ctx.textAlign = 'left';
+  ctx.fillStyle = '#ffffff';
+  ctx.font = '900 26px "Plus Jakarta Sans", sans-serif';
+  ctx.fillText(`@${user.username}`, 195, 128);
+
+  ctx.fillStyle = '#f59e0b';
+  ctx.font = '800 14px "Plus Jakarta Sans", sans-serif';
+  ctx.fillText(user.title || 'Iniciado del Retrete', 195, 150);
+
+  ctx.fillStyle = '#06b6d4';
+  ctx.font = '800 12px "Plus Jakarta Sans", sans-serif';
+  ctx.fillText(`Rango: ${levelInfo.rank}`, 195, 170);
+
+  // Tabla de Estadísticas
+  ctx.fillStyle = 'rgba(255, 255, 255, 0.05)';
+  ctx.fillRect(195, 188, 320, 105);
+  ctx.strokeStyle = 'rgba(255, 255, 255, 0.08)';
+  ctx.strokeRect(195, 188, 320, 105);
+
+  ctx.fillStyle = '#cbd5e1';
+  ctx.font = '700 12px "Plus Jakarta Sans", sans-serif';
+  ctx.fillText(`🔥 Racha: ${user.streak_days} días consecutivos`, 210, 212);
+  ctx.fillText(`⚡ Experiencia Total: ${user.xp.toLocaleString()} XP`, 210, 235);
+  ctx.fillText(`🚽 Baños Verificados: ${user.stats.verifications_count} check-ins`, 210, 258);
+  ctx.fillText(`🗺️ Ciudades Cazadas: ${user.stats.cities_count || 1} ciudades`, 210, 281);
+
+  // Sello Holográfico Circular
+  ctx.save();
+  ctx.translate(600, 210);
+  ctx.rotate(-0.2);
+  ctx.strokeStyle = 'rgba(6, 182, 212, 0.7)';
+  ctx.lineWidth = 2.5;
+  ctx.beginPath();
+  ctx.arc(0, 0, 52, 0, Math.PI * 2);
+  ctx.stroke();
+
+  ctx.strokeStyle = 'rgba(16, 185, 129, 0.5)';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.arc(0, 0, 46, 0, Math.PI * 2);
+  ctx.stroke();
+
+  ctx.fillStyle = '#06b6d4';
+  ctx.font = '900 9px "Plus Jakarta Sans", sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('VERIFIED', 0, -12);
+  ctx.fillStyle = '#10b981';
+  ctx.font = '900 13px "Plus Jakarta Sans", sans-serif';
+  ctx.fillText('HUNTER', 0, 4);
+  ctx.fillStyle = '#94a3b8';
+  ctx.font = '800 8px "Plus Jakarta Sans", sans-serif';
+  ctx.fillText('100% OFICIAL', 0, 20);
+  ctx.restore();
+
+  // Pie de tarjeta
+  ctx.fillStyle = '#64748b';
+  ctx.font = '700 10px "Plus Jakarta Sans", sans-serif';
+  ctx.textAlign = 'left';
+  const serial = `SERIE: WCH-${Math.abs(user.username.split('').reduce((a,c)=>a+c.charCodeAt(0),0))}-${levelInfo.level}X`;
+  ctx.fillText(serial, 40, 390);
+
+  ctx.textAlign = 'right';
+  ctx.fillStyle = '#10b981';
+  ctx.fillText('https://polmestrichpalau.github.io/wc-hunter/', 680, 390);
+
+  const dataUrl = canvas.toDataURL('image/png');
+
+  // Abrir modal de vista previa del carnet
+  const modalWrap = document.createElement('div');
+  modalWrap.className = 'fixed inset-0 z-[3000] bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-4 animate-slide-up';
+  modalWrap.innerHTML = `
+    <div class="bg-slate-900 border border-slate-700/80 rounded-3xl p-5 max-w-xl w-full shadow-2xl flex flex-col gap-4">
+      <div class="flex items-center justify-between">
+        <h3 class="text-base font-black text-white flex items-center gap-2">
+          <span>🪪</span> <span>Tu Carnet Oficial de Cazador</span>
+        </h3>
+        <button id="close-card-modal-btn" class="w-8 h-8 rounded-full bg-slate-800 text-slate-300 hover:text-white font-bold flex items-center justify-center transition">✕</button>
+      </div>
+      <div class="rounded-2xl overflow-hidden border border-white/10 shadow-xl bg-slate-950 flex items-center justify-center">
+        <img src="${dataUrl}" alt="Carnet Oficial Hunter" class="w-full h-auto object-contain" />
+      </div>
+      <div class="flex items-center gap-2.5">
+        <a href="${dataUrl}" download="carnet-hunter-${esc(user.username)}.png" class="tactile-amber-btn flex-1 bg-gradient-to-r from-amber-500 to-yellow-400 hover:from-amber-400 text-slate-950 font-black text-xs py-3 px-4 rounded-xl shadow-lg flex items-center justify-center gap-2">
+          <span>⬇️</span> <span>Descargar Carnet (PNG)</span>
+        </a>
+        <button id="share-card-btn" class="bg-slate-800 hover:bg-slate-700 text-white font-black text-xs py-3 px-4 rounded-xl border border-white/10 flex items-center justify-center gap-1.5 transition">
+          <span>📤</span> <span>Compartir</span>
+        </button>
+      </div>
+    </div>
+  `;
+
+  document.body.appendChild(modalWrap);
+
+  modalWrap.querySelector('#close-card-modal-btn')?.addEventListener('click', () => modalWrap.remove());
+  modalWrap.addEventListener('click', (e) => { if (e.target === modalWrap) modalWrap.remove(); });
+
+  modalWrap.querySelector('#share-card-btn')?.addEventListener('click', async () => {
+    try {
+      const blob = await (await fetch(dataUrl)).blob();
+      const file = new File([blob], `carnet-hunter-${user.username}.png`, { type: 'image/png' });
+      if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+        await navigator.share({
+          files: [file],
+          title: `Carnet Oficial WC Hunter · @${user.username}`,
+          text: `¡Soy Nivel ${levelInfo.level} (${levelInfo.rank}) en WC Hunter! 🚽🔥`
+        });
+        return;
+      }
+    } catch (e) {}
+    // Fallback: descarga directa
+    const a = document.createElement('a');
+    a.href = dataUrl;
+    a.download = `carnet-hunter-${user.username}.png`;
+    a.click();
+    store.showToast('📥 Carnet descargado para compartir', 'success');
   });
 }

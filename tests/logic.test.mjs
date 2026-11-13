@@ -236,4 +236,24 @@ await test('modo comunidad: mergeRemoteWcs detecta cambios y no repite', () => {
   store.remote = false; // restaurar
 });
 
+await test('safeUrl permite data:image/ ademas de https y bloquea javascript:', () => {
+  assert.equal(safeUrl('data:image/jpeg;base64,/9j/4AAQSkZJRg=='), 'data:image/jpeg;base64,/9j/4AAQSkZJRg==');
+  assert.equal(safeUrl('javascript:alert(1)'), '');
+  assert.equal(safeUrl('vbscript:msgbox(1)'), '');
+});
+
+await test('copia de seguridad JSON: importBackupJson restaura datos y rechaza JSON invalido', () => {
+  assert.equal(store.importBackupJson('{"app":"MALICIOSO"}'), false);
+  const sampleBackup = JSON.stringify({
+    app: 'WC_HUNTER',
+    version: '6.0',
+    user: { username: 'ProHunter', xp: 5000, level: 12 },
+    custom_wcs: [{ id: 'custom_wc_1', name: 'Trono Oculto', latitude: 40.42, longitude: -3.70 }]
+  });
+  const res = store.importBackupJson(sampleBackup);
+  assert.equal(res, true);
+  assert.equal(store.user.username, 'ProHunter');
+  assert.ok(store.wcs.some(w => w.id === 'custom_wc_1'));
+});
+
 console.log(`\n=== ${passed} PRUEBAS OK ===`);

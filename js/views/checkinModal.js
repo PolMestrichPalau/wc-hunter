@@ -5,7 +5,7 @@
  */
 import { store } from '../state.js';
 import { backend } from '../backend.js';
-import { esc, makePhotoVersions } from '../utils.js';
+import { esc, makePhotoVersions, blobToBase64 } from '../utils.js';
 import { reverseGeocode } from '../geo.js';
 import { calculateDistanceMeters, formatDistance } from '../engines/wcEngine.js';
 
@@ -102,7 +102,7 @@ function ratingButtons() {
 }
 
 function extrasBlock({ showPhoto = true } = {}) {
-  const canPhoto = store.remote && showPhoto;
+  const canPhoto = Boolean(showPhoto);
   return `
     <div class="flex flex-wrap gap-2 text-xs font-bold">
       <button type="button" data-toggle="closed" class="px-3 py-2 rounded-xl border ${S.closed ? 'bg-rose-500/20 border-rose-500 text-rose-300' : 'bg-slate-800 border-slate-700 text-slate-300'}">🔒 Estaba cerrado</button>
@@ -297,10 +297,18 @@ async function submitExisting(container) {
       });
       S.result = { remote: true, wcId: wc.id, name: wc.name, xp: res.xp_awarded, breakdown: res.breakdown, first: res.first_to_document, rarity: res.rarity };
     } else {
+      let localPhoto = null;
+      if (S.photo) {
+        try {
+          const { thumb } = await makePhotoVersions(S.photo);
+          localPhoto = await blobToBase64(thumb);
+        } catch (e) {}
+      }
       const ok = store.verifyWC(wc.id, {
         status: S.closed ? 'closed' : 'open', has_paper: !S.noPaper, has_soap: !S.noSoap,
         cleanliness: S.closed ? undefined : CLEAN[S.rating],
-        comment: S.comment.trim() || ''
+        comment: S.comment.trim() || '',
+        photo: localPhoto
       });
       if (!ok) throw new Error('Ya verificaste este baño hace poco. Vuelve más tarde.');
       S.result = { remote: false, wcId: wc.id, name: wc.name, rarity: wc.rarity };
@@ -346,10 +354,18 @@ async function submitNew(container) {
       }
       S.result = { remote: true, wcId: created.wc_id, name, xp, breakdown, first, rarity: created.rarity };
     } else {
+      let localPhoto = null;
+      if (S.photo) {
+        try {
+          const { thumb } = await makePhotoVersions(S.photo);
+          localPhoto = await blobToBase64(thumb);
+        } catch (e) {}
+      }
       const ok = store.addNewWC({
         name, city, country, address: info.address || '', latitude: S.pos.lat, longitude: S.pos.lng,
         type: S.type, access_type: 'free', paper: !S.noPaper, soap: !S.noSoap,
-        initial_rating: S.closed ? 3 : S.rating, comment: S.comment
+        initial_rating: S.closed ? 3 : S.rating, comment: S.comment,
+        photo: localPhoto
       }, { openDetail: false });
       if (!ok) throw new Error('No se pudo crear el baño. Revisa los datos.');
       const created = store.wcs[0];

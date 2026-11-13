@@ -3,14 +3,16 @@
  * Marcadores ultra-visuales y limpios: "¿Dónde están?"
  */
 import { store } from './state.js';
-import { getSemanticStatus } from './engines/wcEngine.js';
+import { getSemanticStatus, formatDistance, formatWalkTime } from './engines/wcEngine.js';
 import { esc } from './utils.js';
-import { reverseGeocode } from './geo.js';
+import { reverseGeocode, fetchWalkingRoute } from './geo.js';
 
 class MapManager {
   constructor() {
     this.map = null;
     this.markersLayer = null;
+    this.routeLayer = null;
+    this.activeRouteInfo = null;
     this.userMarker = null;
     this.initialized = false;
     this.onMarkerClickCallback = null;
@@ -28,6 +30,7 @@ class MapManager {
 
   /** Guarda la vista y destruye el mapa (al salir de la pestaña Mapa) */
   destroy() {
+    this.clearTacticalRoute();
     if (!this.map) return;
     try {
       this.lastView = { center: this.map.getCenter(), zoom: this.map.getZoom() };
@@ -35,6 +38,7 @@ class MapManager {
     } catch (e) {}
     this.map = null;
     this.markersLayer = null;
+    this.routeLayer = null;
     this.userMarker = null;
     this.initialized = false;
   }
@@ -107,6 +111,7 @@ class MapManager {
       tiles.addTo(this.map);
 
       this.markersLayer = window.L.layerGroup().addTo(this.map);
+      this.routeLayer = window.L.layerGroup().addTo(this.map);
 
       // Marcador del usuario: Radar táctico con badge 'TÚ'
       const userIcon = window.L.divIcon({
@@ -304,6 +309,141 @@ class MapManager {
   invalidate() {
     if (this.map) {
       setTimeout(() => { if (this.map) this.map.invalidateSize(); }, 200);
+    }
+  }
+
+  clearTacticalRoute() {
+    if (this.routeLayer) {
+      try { this.routeLayer.clearLayers(); } catch (e) {}
+    }
+    this.activeRouteInfo = null;
+    const hud = document.getElementById('map-route-hud');
+    if (hud) hud.remove();
+  }
+
+  async drawTacticalRoute(destLat, destLng, destName = 'WC Destino') {
+    if (!this.map || !window.L) return;
+    this.clearTacticalRoute();
+
+    const startLat = store.userLocation.lat;
+    const startLng = store.userLocation.lng;
+
+    store.showToast('🧭 Trazando ruta táctica a pie...', 'info', 1800);
+
+    const routeData = await fetchWalkingRoute(startLat, startLng, destLat, destLng);
+    if (!this.map || !this.routeLayer) return;
+
+    let coords;
+    let distMeters = 0;
+    let durationSec = 0;
+
+    if (routeData && routeData.coordinates.length > 0) {
+      coords = routeData.coordinates;
+      distMeters = routeData.distanceMeters;
+      durationSec = routeData.durationSeconds;
+    } else {
+      coords = [[startLat, startLng], [destLat, destLng]];
+      distMeters = Math.round(window.L.latLng(startLat, startLng).distanceTo(window.L.latLng(destLat, destLng)));
+      durationSec = Math.round(distMeters / 1.3);
+    }
+
+    // Capa de resplandor exterior neón cian
+    const glowLine = window.L.polyline(coords, {
+      color: '#06b6d4',
+      weight: 8,
+      opacity: 0.35,
+      lineCap: 'round',
+      lineJoin: 'round'
+    });
+
+    // Línea táctica discontinua esmeralda
+    const coreLine = window.L.polyline(coords, {
+      color: '#10b981',
+      weight: 4,
+      dashArray: '8, 8',
+      opacity: 0.95,
+      lineCap: 'round',
+      lineJoin: 'round'
+    });
+
+    // Marcador de destino con anillo pulsante
+    const destIcon = window.L.divIcon({
+      className: 'dest-radar-pin',
+      html: `
+        <div class="relative flex flex-col items-center select-none" style="transform: translate(-50%, -50%);">
+          <div class="absolute w-8 h-8 rounded-full bg-cyan-400/30 animate-ping pointer-events-none"></div>
+          <div class="w-7 h-7 rounded-full bg-slate-950 border-2 border-cyan-400 flex items-center justify-center text-sm shadow-[0_0_12px_#06b6d4]">
+            🏁
+          </div>
+          <span class="mt-1 px-1.5 py-0.5 rounded-full bg-slate-900 border border-cyan-500/60 text-[9px] font-black text-cyan-300 tracking-wider shadow whitespace-nowrap">
+            LLEGADA
+          </span>
+        </div>
+      `,
+      iconSize: [40, 40],
+      iconAnchor: [0, 0]
+    });
+    const destMarker = window.L.marker([destLat, destLng], { icon: destIcon, interactive: false });
+
+    this.routeLayer.addLayer(glowLine);
+    this.routeLayer.addLayer(coreLine);
+    this.routeLayer.addLayer(destMarker);
+
+    this.activeRouteInfo = { destLat, destLng, destName, distMeters, durationSec };
+
+    try {
+      this.map.fitBounds(coreLine.getBounds(), { padding: [80, 80], maxZoom: 17 });
+    } catch (e) {}
+
+    this.showRouteHud(destName, distMeters, durationSec);
+  }
+
+  showRouteHud(destName, distMeters, durationSec) {
+    let hud = document.getElementById('map-route-hud');
+    if (!hud) {
+      hud = document.createElement('div');
+      hud.id = 'map-route-hud';
+      hud.className = 'absolute bottom-20 sm:bottom-6 left-3 right-3 sm:left-6 sm:right-auto sm:w-[420px] z-[1000] pointer-events-auto bg-slate-950/95 backdrop-blur-xl border-2 border-cyan-500/50 rounded-3xl p-4 shadow-[0_0_30px_rgba(6,182,212,0.35)] flex flex-col gap-2.5 animate-slide-up';
+      const container = document.getElementById('map-container')?.parentElement;
+      if (container) container.appendChild(hud);
+    }
+
+    const distLabel = formatDistance(distMeters);
+    const timeLabel = formatWalkTime(distMeters);
+
+    hud.innerHTML = `
+      <div class="flex items-center justify-between gap-2">
+        <div class="flex items-center gap-2 min-w-0">
+          <span class="text-xl animate-pulse">🧭</span>
+          <div class="min-w-0">
+            <span class="text-[9px] font-black uppercase tracking-wider text-cyan-400 block">RUTA TÁCTICA A PIE</span>
+            <h4 class="text-xs sm:text-sm font-black text-white truncate">${esc(destName)}</h4>
+          </div>
+        </div>
+        <button id="close-route-hud-btn" class="w-8 h-8 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-300 font-black text-xs flex items-center justify-center border border-white/10 transition" title="Cerrar ruta">
+          ✕
+        </button>
+      </div>
+      <div class="flex items-center justify-between bg-slate-900/90 rounded-2xl px-3.5 py-2 border border-cyan-500/30">
+        <div class="flex items-center gap-2">
+          <span class="text-sm">📍</span>
+          <span class="text-xs font-black text-white">${esc(distLabel)}</span>
+        </div>
+        <div class="flex items-center gap-2">
+          <span class="text-sm">⏱️</span>
+          <span class="text-xs font-black text-emerald-400">${esc(timeLabel)}</span>
+        </div>
+        <a href="https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(this.activeRouteInfo?.destLat)},${encodeURIComponent(this.activeRouteInfo?.destLng)}&travelmode=walking" target="_blank" rel="noopener" class="text-[10px] font-black bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 px-2.5 py-1 rounded-xl border border-cyan-400/40 transition flex items-center gap-1">
+          <span>Abrir GPS</span> <span>↗</span>
+        </a>
+      </div>
+    `;
+
+    const closeBtn = hud.querySelector('#close-route-hud-btn');
+    if (closeBtn) {
+      closeBtn.addEventListener('click', () => {
+        this.clearTacticalRoute();
+      });
     }
   }
 }

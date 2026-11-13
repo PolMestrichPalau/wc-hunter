@@ -83,14 +83,14 @@ export function renderWcDetailModal(container) {
 
           <!-- Botones de Navegación Directa (Stitch Screen 2 Primary CTA) -->
           <div class="grid grid-cols-2 gap-2.5">
-            <a href="${esc(navUrl)}" target="_blank" rel="noopener" class="tactile-cyan-btn bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-400 text-slate-950 font-black text-xs py-3 px-4 rounded-2xl shadow-lg flex items-center justify-center gap-2">
+            <button type="button" id="detail-tactical-route-btn" class="tactile-cyan-btn bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-400 text-slate-950 font-black text-xs py-3 px-3 rounded-2xl shadow-lg flex items-center justify-center gap-2">
               <span class="text-base">🧭</span>
-              <span>Cómo llegar (Ruta)</span>
-            </a>
-            <button type="button" id="detail-show-map-btn" class="tactile-btn bg-slate-800 hover:bg-slate-700 text-white border border-white/10 font-black text-xs py-3 px-4 rounded-2xl shadow flex items-center justify-center gap-2">
-              <span class="text-base">🎯</span>
-              <span>Ver en Radar</span>
+              <span>Ruta en Radar</span>
             </button>
+            <a href="${esc(navUrl)}" target="_blank" rel="noopener" class="tactile-btn bg-slate-800 hover:bg-slate-700 text-white border border-white/10 font-black text-xs py-3 px-3 rounded-2xl shadow flex items-center justify-center gap-2">
+              <span class="text-base">↗</span>
+              <span>Google Maps</span>
+            </a>
           </div>
 
           ${(wc.hunter_tip || wc.access_code) ? `
@@ -112,10 +112,23 @@ export function renderWcDetailModal(container) {
           ` : ''}
 
           ${photos.length ? `
-            <div class="flex gap-2 overflow-x-auto no-scrollbar">
-              ${photos.map(p => `<img src="${esc(p.url)}" alt="${esc(p.caption || 'Foto del WC')}" loading="lazy" referrerpolicy="no-referrer" class="h-28 rounded-2xl border border-white/10 object-cover flex-shrink-0" />`).join('')}
+            <div class="flex flex-col gap-1.5">
+              <span class="text-[10px] font-black uppercase tracking-wider text-slate-400">📸 FOTOS DE CAZADORES (${photos.length})</span>
+              <div class="flex gap-2 overflow-x-auto no-scrollbar">
+                ${photos.map(p => `
+                  <div class="relative flex-shrink-0 group">
+                    <img src="${esc(p.url)}" alt="${esc(p.caption || 'Foto del WC')}" loading="lazy" referrerpolicy="no-referrer" class="h-28 w-36 rounded-2xl border border-white/10 object-cover" />
+                    ${p.hunter ? `<span class="absolute bottom-1.5 left-1.5 bg-slate-950/80 text-[9px] font-black text-cyan-300 px-1.5 py-0.5 rounded-lg border border-white/10">@${esc(p.hunter)}</span>` : ''}
+                  </div>
+                `).join('')}
+              </div>
             </div>
-          ` : ''}
+          ` : `
+            <div class="p-3 bg-slate-950/50 border border-dashed border-slate-800 rounded-2xl flex items-center justify-between text-xs text-slate-400">
+              <span class="flex items-center gap-2"><span class="text-base">📸</span> <span>Sin fotos todavía de este trono</span></span>
+              <span class="text-[11px] font-bold text-emerald-400">+10 XP al validar con foto</span>
+            </div>
+          `}
 
           <!-- 1. INFORMACIÓN DE ACCESO (Prioritaria arriba de todo) -->
           <div class="p-3.5 rounded-2xl border ${access.bgClass} flex items-center justify-between">
@@ -492,6 +505,21 @@ export function renderWcDetailModal(container) {
       if (store.currentTab !== 'map') {
         store.setTab('map');
       }
+    });
+  }
+
+  // Botón Trazar Ruta en Radar (in-app tactical routing)
+  const tacticalRouteBtn = container.querySelector('#detail-tactical-route-btn');
+  if (tacticalRouteBtn) {
+    tacticalRouteBtn.addEventListener('click', () => {
+      const targetWc = wc;
+      store.closeWcDetail();
+      if (store.currentTab !== 'map') {
+        store.setTab('map');
+      }
+      setTimeout(() => {
+        mapManager.drawTacticalRoute(targetWc.latitude, targetWc.longitude, targetWc.name);
+      }, 120);
     });
   }
 
