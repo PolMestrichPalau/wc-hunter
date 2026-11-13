@@ -7,6 +7,7 @@ import { calculateLevel } from '../engines/gameEngine.js';
 import { computeUserRecords, generateUserNickname } from '../engines/userEngine.js';
 import { esc } from '../utils.js';
 import { backend, describeError } from '../backend.js';
+import { openQrShareModal, openFeedbackModal } from './feedbackModal.js';
 
 export function renderProfileView(container) {
   const user = store.user;
@@ -243,7 +244,28 @@ export function renderProfileView(container) {
           </div>
         </div>
 
-        <!-- 4. ⚙️ PWA & COPIA DE SEGURIDAD -->
+        <!-- 4. 🚀 ZONA BETA TESTERS & INVITAR CON QR -->
+        <div class="bg-gradient-to-r from-slate-900 via-surface-container to-slate-900 border border-emerald-500/30 rounded-3xl p-5 flex flex-col gap-3 shadow-xl">
+          <div class="flex items-center justify-between">
+            <h2 class="text-xs font-black uppercase tracking-wider text-emerald-400 flex items-center gap-2">
+              <span>🚀</span>
+              <span>Zona Beta Testers & Compartir</span>
+            </h2>
+            <span class="text-xs text-amber-400 font-bold">+20 XP Feedback</span>
+          </div>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+            <button id="profile-qr-btn" type="button" class="bg-slate-800/90 hover:bg-slate-800 border border-emerald-500/40 text-emerald-300 font-black text-xs py-3.5 px-3 rounded-2xl flex items-center justify-center gap-2 transition active:scale-95 shadow">
+              <span class="text-xl">📲</span>
+              <span>Invitar Probadores con QR</span>
+            </button>
+            <button id="profile-feedback-btn" type="button" class="bg-slate-800/90 hover:bg-slate-800 border border-amber-500/40 text-amber-300 font-black text-xs py-3.5 px-3 rounded-2xl flex items-center justify-center gap-2 transition active:scale-95 shadow">
+              <span class="text-xl">💬</span>
+              <span>Buzón de Feedback (+20 XP)</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- 5. ⚙️ PWA & COPIA DE SEGURIDAD -->
         <div class="bg-slate-900/80 border border-slate-800 rounded-3xl p-5 flex flex-col gap-3.5 shadow-md">
           <div class="flex items-center justify-between">
             <h2 class="text-xs font-black uppercase tracking-wider text-slate-300 flex items-center gap-2">
@@ -326,6 +348,15 @@ export function renderProfileView(container) {
   // Generador de Carnet Oficial Hunter
   container.querySelector('#generate-card-btn')?.addEventListener('click', () => {
     generateAndShowHunterCard(user, levelInfo);
+  });
+
+  // Zona Beta Testers: QR & Feedback
+  container.querySelector('#profile-qr-btn')?.addEventListener('click', () => {
+    openQrShareModal();
+  });
+
+  container.querySelector('#profile-feedback-btn')?.addEventListener('click', () => {
+    openFeedbackModal();
   });
 
   // PWA Instalación

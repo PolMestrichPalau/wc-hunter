@@ -12,6 +12,7 @@ import { renderProfileView } from './views/profileView.js';
 import { renderWcDetailModal } from './views/wcDetailModal.js';
 import { renderAddWcModal } from './views/addWcModal.js';
 import { renderCheckinModal } from './views/checkinModal.js';
+import { openQrShareModal, openFeedbackModal } from './views/feedbackModal.js';
 
 class App {
   constructor() {
@@ -99,6 +100,16 @@ class App {
       userCard.addEventListener('click', () => {
         store.setTab('profile');
       });
+    }
+
+    const sidebarQrBtn = document.getElementById('sidebar-qr-btn');
+    if (sidebarQrBtn) {
+      sidebarQrBtn.addEventListener('click', () => openQrShareModal());
+    }
+
+    const sidebarFeedbackBtn = document.getElementById('sidebar-feedback-btn');
+    if (sidebarFeedbackBtn) {
+      sidebarFeedbackBtn.addEventListener('click', () => openFeedbackModal());
     }
 
     // Captura del evento de instalación PWA
