@@ -38,14 +38,16 @@ export function calculateWCScore(breakdown, reviews = []) {
   let totalWeight = 0;
 
   reviews.forEach(review => {
-    const ageDays = (now - new Date(review.created_at).getTime()) / (1000 * 60 * 60 * 24);
-    const recency = Math.exp(-0.05 * Math.max(0, ageDays)); // vida media ~14 días
-    const rep = (review.user_reputation || 90) / 100;
+    const rawTime = Date.parse(review.created_at);
+    const reviewTime = Number.isFinite(rawTime) ? rawTime : now;
+    const ageDays = Math.max(0, (now - reviewTime) / (1000 * 60 * 60 * 24));
+    const recency = Math.exp(-0.05 * ageDays); // vida media ~14 días
+    const rep = Math.max(0.1, Math.min(1.0, (Number(review.user_reputation) || 90) / 100));
     const weight = rep * recency;
 
     const rScore = review.score_breakdown
       ? calcFromBreakdown(review.score_breakdown)
-      : (review.overall_rating ? review.overall_rating * 20 : 70);
+      : (review.overall_rating ? Math.max(0, Math.min(100, Number(review.overall_rating) * 20)) : 70);
 
     totalWeightedScore += rScore * weight;
     totalWeight += weight;
@@ -70,8 +72,8 @@ export function getScoreRatingText(score) {
  * Calcula el Confidence Score (0 - 100%)
  */
 export function calculateConfidence(wc, verifications = []) {
-  // El numero de verificaciones nunca baja por verificar de nuevo: se toma el mayor entre
-  // el historico acumulado del WC y los reportes recientes recibidos.
+  // El número de verificaciones nunca baja por verificar de nuevo: se toma el mayor entre
+  // el histórico acumulado del WC y los reportes recientes recibidos.
   const verifCount = Math.max(verifications.length, wc.verified_by_count || 0) ||
     (wc.reviews_count ? Math.min(10, Math.floor(wc.reviews_count / 2)) : 1);
 
@@ -80,34 +82,58 @@ export function calculateConfidence(wc, verifications = []) {
   else if (verifCount >= 4) baseScore = 85;
   else if (verifCount >= 2) baseScore = 65;
 
-  const uniqueUsers = new Set(verifications.map(v => v.user_id)).size || 1;
+  const validVerifs = verifications.filter(v => v && v.user_id);
+  const uniqueUsers = validVerifs.length > 0 ? new Set(validVerifs.map(v => v.user_id)).size : 1;
   const userBonus = Math.min(20, uniqueUsers * 5);
 
   let photoBonus = 0;
   const now = Date.now();
-  if (wc.photos && wc.photos.length > 0) {
-    const newestPhotoTime = Math.max(...wc.photos.map(p => new Date(p.uploaded_at).getTime()));
-    const daysSincePhoto = (now - newestPhotoTime) / (1000 * 60 * 60 * 24);
-    if (daysSincePhoto <= 7) photoBonus = 15;
-    else if (daysSincePhoto <= 30) photoBonus = 5;
+  if (Array.isArray(wc.photos) && wc.photos.length > 0) {
+    const photoTimes = wc.photos.map(p => Date.parse(p.uploaded_at || p.created_at)).filter(Number.isFinite);
+    if (photoTimes.length > 0) {
+      const newestPhotoTime = Math.max(...photoTimes);
+      const daysSincePhoto = Math.max(0, (now - newestPhotoTime) / (1000 * 60 * 60 * 24));
+      if (daysSincePhoto <= 7) photoBonus = 15;
+      else if (daysSincePhoto <= 30) photoBonus = 5;
+    }
   }
 
-  const lastVerifiedTime = wc.last_verified_at ? new Date(wc.last_verified_at).getTime() : (now - 1000 * 60 * 60 * 24 * 5);
-  const hoursSince = (now - lastVerifiedTime) / (1000 * 60 * 60);
+  const lastVerifiedRaw = Date.parse(wc.last_verified_at);
+  const lastVerifiedTime = Number.isFinite(lastVerifiedRaw) ? lastVerifiedRaw : (now - 1000 * 60 * 60 * 24 * 5);
+  const hoursSince = Math.max(0, (now - lastVerifiedTime) / (1000 * 60 * 60));
 
-  let decay = 0.20;
-  if (hoursSince <= 2) decay = 1.0;
-  else if (hoursSince <= 24) decay = 0.90;
-  else if (hoursSince <= 24 * 7) decay = 0.70;
-  else if (hoursSince <= 24 * 30) decay = 0.45;
+  // Decaimiento continuo suave (evita saltos bruscos cliff effect):
+  let decay;
+  if (hoursSince <= 2) {
+    decay = 1.0;
+  } else if (hoursSince <= 24) {
+    decay = 1.0 - 0.10 * ((hoursSince - 2) / 22); // 1.0 -> 0.90
+  } else if (hoursSince <= 168) {
+    decay = 0.90 - 0.20 * ((hoursSince - 24) / 144); // 0.90 -> 0.70
+  } else if (hoursSince <= 720) {
+    decay = 0.70 - 0.25 * ((hoursSince - 168) / 552); // 0.70 -> 0.45
+  } else {
+    decay = Math.max(0.20, 0.45 * Math.exp(-0.001 * (hoursSince - 720)));
+  }
 
+  // Detección multivariable de contradicciones recientes (últimos 3 reportes)
   let contradictionPenalty = 0;
   let hasContradiction = false;
   if (verifications.length >= 2) {
     const recent = verifications.slice(-3);
     const paperReports = recent.map(v => v.has_paper).filter(v => typeof v === 'boolean');
-    if (paperReports.includes(true) && paperReports.includes(false)) {
-      contradictionPenalty = 35;
+    const soapReports = recent.map(v => v.has_soap).filter(v => typeof v === 'boolean');
+    const statusReports = recent.map(v => v.status).filter(Boolean);
+
+    const hasPaperConflict = paperReports.includes(true) && paperReports.includes(false);
+    const hasSoapConflict = soapReports.includes(true) && soapReports.includes(false);
+    const hasStatusConflict = statusReports.includes('open') && statusReports.includes('closed');
+
+    if (hasStatusConflict) {
+      contradictionPenalty = 45; // Máxima gravedad: contradicción abierto vs cerrado
+      hasContradiction = true;
+    } else if (hasPaperConflict || hasSoapConflict) {
+      contradictionPenalty = 35; // Conflicto de suministros
       hasContradiction = true;
     }
   }
@@ -303,11 +329,19 @@ export function formatRelativeTime(isoString) {
  * Cálculo de distancia Haversine en metros
  */
 export function calculateDistanceMeters(lat1, lon1, lat2, lon2) {
+  const nLat1 = Number(lat1);
+  const nLon1 = Number(lon1);
+  const nLat2 = Number(lat2);
+  const nLon2 = Number(lon2);
+  if (!Number.isFinite(nLat1) || !Number.isFinite(nLon1) || !Number.isFinite(nLat2) || !Number.isFinite(nLon2)) {
+    return 0;
+  }
+
   const R = 6371e3;
-  const φ1 = lat1 * Math.PI / 180;
-  const φ2 = lat2 * Math.PI / 180;
-  const Δφ = (lat2 - lat1) * Math.PI / 180;
-  const Δλ = (lon2 - lon1) * Math.PI / 180;
+  const φ1 = (nLat1 * Math.PI) / 180;
+  const φ2 = (nLat2 * Math.PI) / 180;
+  const Δφ = ((nLat2 - nLat1) * Math.PI) / 180;
+  const Δλ = ((nLon2 - nLon1) * Math.PI) / 180;
 
   const a = Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
             Math.cos(φ1) * Math.cos(φ2) *

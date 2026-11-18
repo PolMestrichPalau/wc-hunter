@@ -570,6 +570,7 @@ class Store {
       this.user.streak_days = Math.max(1, this.user.streak_days || 0);
     } else {
       const diffDays = Math.round((Date.parse(today) - Date.parse(last)) / 86400000);
+      if (diffDays < 0) return; // Reloj alterado hacia el pasado: ignorar para no corromper la racha
       this.user.streak_days = diffDays === 1 ? (this.user.streak_days || 0) + 1 : 1;
     }
     this.user.last_active_date = today;

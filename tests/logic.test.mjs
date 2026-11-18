@@ -10,7 +10,7 @@ globalThis.localStorage = {
 };
 
 const { store } = await import('../js/state.js');
-const { calculateConfidence, getSemanticStatus, formatWouldReturn, formatAccessShort, formatDistance } = await import('../js/engines/wcEngine.js');
+const { calculateConfidence, getSemanticStatus, formatWouldReturn, formatAccessShort, formatDistance, calculateWCScore, calculateDistanceMeters } = await import('../js/engines/wcEngine.js');
 const { calculateLevel } = await import('../js/engines/gameEngine.js');
 const { esc, safeUrl } = await import('../js/utils.js');
 const { computeCollections, computeUserRecords } = await import('../js/engines/userEngine.js');
@@ -254,6 +254,35 @@ await test('copia de seguridad JSON: importBackupJson restaura datos y rechaza J
   assert.equal(res, true);
   assert.equal(store.user.username, 'ProHunter');
   assert.ok(store.wcs.some(w => w.id === 'custom_wc_1'));
+});
+
+await test('robustez matematica: calculateWCScore tolera fechas corruptas sin producir NaN', () => {
+  const score = calculateWCScore({ cleanliness: 80 }, [
+    { created_at: 'FECHA_CORRUPTA', overall_rating: 4 },
+    { created_at: null, overall_rating: 5 }
+  ]);
+  assert.ok(Number.isFinite(score));
+  assert.ok(score >= 0 && score <= 100);
+});
+
+await test('robustez matematica: calculateConfidence detecta contradiccion en estado y jabon', () => {
+  const dummyWc = { verified_by_count: 5, last_verified_at: new Date().toISOString() };
+  const confStatusConflict = calculateConfidence(dummyWc, [
+    { user_id: 'u1', status: 'open' },
+    { user_id: 'u2', status: 'closed' }
+  ]);
+  assert.equal(confStatusConflict.hasContradiction, true);
+
+  const confSoapConflict = calculateConfidence(dummyWc, [
+    { user_id: 'u1', has_soap: true },
+    { user_id: 'u2', has_soap: false }
+  ]);
+  assert.equal(confSoapConflict.hasContradiction, true);
+});
+
+await test('robustez matematica: calculateDistanceMeters devuelve 0 ante coordenadas invalidas', () => {
+  assert.equal(calculateDistanceMeters(undefined, null, NaN, 'invalido'), 0);
+  assert.ok(calculateDistanceMeters(40.4168, -3.7038, 40.4170, -3.7040) > 0);
 });
 
 console.log(`\n=== ${passed} PRUEBAS OK ===`);
