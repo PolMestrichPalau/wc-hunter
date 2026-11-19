@@ -493,4 +493,25 @@ await test('modo comunidad: rewardFeedback devuelve false y no concede XP local 
   store.remote = false; // Restaurar
 });
 
+await test('scanOsmRadar: deduplica con Haversine a <35m y normaliza a unrated=true con score=0', async () => {
+  store.wcs.push(store.normalizeWc({ id: 'wc_existing_sol', latitude: 40.4168, longitude: -3.7038, name: 'Sol Existente' }));
+  const origFetch = globalThis.fetch;
+  globalThis.fetch = async () => ({
+    ok: true,
+    json: async () => [
+      { osm_type: 'node', osm_id: '991', lat: '40.4168', lon: '-3.7038', name: 'WC Sol Duplicado' },
+      { osm_type: 'node', osm_id: '992', lat: '40.4900', lon: '-3.7500', name: 'WC Nuevo Alejado' }
+    ]
+  });
+
+  const count = await store.scanOsmRadar(40.4168, -3.7038);
+  globalThis.fetch = origFetch;
+
+  assert.equal(count, 1, 'Solo debe anadir el bano no duplicado');
+  const added = store.wcs.find(w => w.id === 'osm_node_992');
+  assert.ok(added);
+  assert.equal(added.unrated, true);
+  assert.equal(added.score, 0);
+});
+
 console.log(`\n=== ${passed} PRUEBAS OK ===`);

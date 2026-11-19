@@ -127,6 +127,9 @@ $$d = \text{round}\left( 2R \cdot \text{atan2}\left(\sqrt{\text{safeA}}, \sqrt{1
 Ejecución de la suite con Node.js:
 ```bash
 node tests/logic.test.mjs
-# === 41 PRUEBAS OK ===
+# === 42 PRUEBAS OK ===
+
+node tests/sql.test.mjs
+# === 18 PRUEBAS SQL OK ===
 ```
-Todas las aserciones matemáticas, antípodas, fronteras de nivel L=1..200, modelo Bayesiano no circular, límites de antifraude y ciclo de vida OSM pasan al 100%.
+Todas las aserciones matemáticas, antípodas, fronteras de nivel L=1..200, modelo Bayesiano no circular, límites de antifraude, scanOsmRadar y ciclo de vida OSM pasan al 100%.
