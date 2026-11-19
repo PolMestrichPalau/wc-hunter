@@ -24,33 +24,36 @@ export function renderNearView(container) {
     return { ...wc, distanceMeters: dist };
   });
 
+  // Helper de ordenación por distancia resistente a NaN
+  const distSort = (a, b) => (Number.isFinite(a.distanceMeters) ? a.distanceMeters : Infinity) - (Number.isFinite(b.distanceMeters) ? b.distanceMeters : Infinity);
+
   // Aplicar intención seleccionada
   let filtered = [...allWcs];
   if (currentIntent === 'clean') {
     filtered.sort((a, b) => (b.score_breakdown?.cleanliness || 0) - (a.score_breakdown?.cleanliness || 0));
   } else if (currentIntent === 'free') {
     filtered = filtered.filter(w => w.access_type === 'free');
-    filtered.sort((a, b) => a.distanceMeters - b.distanceMeters);
+    filtered.sort(distSort);
   } else if (currentIntent === 'private') {
     filtered.sort((a, b) => (b.score_breakdown?.privacy || 0) - (a.score_breakdown?.privacy || 0));
   } else if (currentIntent === 'baby') {
     filtered = filtered.filter(w => w.equipment.baby_changing);
-    filtered.sort((a, b) => a.distanceMeters - b.distanceMeters);
+    filtered.sort(distSort);
   } else if (currentIntent === 'accessible') {
     filtered = filtered.filter(w => w.equipment.wheelchair);
-    filtered.sort((a, b) => a.distanceMeters - b.distanceMeters);
+    filtered.sort(distSort);
   } else if (currentIntent === 'equipped') {
     filtered = filtered.filter(w => w.equipment.paper && w.equipment.soap);
     filtered.sort((a, b) => b.score - a.score);
   } else if (currentIntent === 'favorites') {
     filtered = filtered.filter(w => store.isFavorite(w.id));
-    filtered.sort((a, b) => a.distanceMeters - b.distanceMeters);
+    filtered.sort(distSort);
   } else {
     // 'any' / '🚨 CUALQUIERA' -> Prioridad: Abierto > Cercano > Score
     filtered.sort((a, b) => {
       if (a.current_status === 'closed' && b.current_status !== 'closed') return 1;
       if (a.current_status !== 'closed' && b.current_status === 'closed') return -1;
-      return a.distanceMeters - b.distanceMeters;
+      return distSort(a, b);
     });
   }
 

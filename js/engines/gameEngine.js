@@ -3,6 +3,8 @@
  * Capa de gamificación, XP, niveles, rareza vs dificultad, misiones, logros y colecciones.
  */
 
+import { calculateXPForAction } from '../algorithms.js';
+
 export const RARITY_CONFIG = {
   COMMON: {
     name: 'COMÚN',
@@ -44,14 +46,40 @@ export const RARITY_CONFIG = {
 };
 
 /**
+ * Base de XP para un nivel determinado: XP(L) = Math.floor(100 * (L - 1)^1.6)
+ */
+export function getLevelXP(level) {
+  const l = Number.isFinite(Number(level)) ? Math.max(1, Math.floor(Number(level))) : 1;
+  return Math.floor(100 * Math.pow(l - 1, 1.6));
+}
+
+/**
  * Cálculo de Nivel y Progreso de XP
- * Fórmula: XP = 100 * Level ^ 1.6
+ * Curva: XP(L) = Math.floor(100 * (L - 1)^1.6)
+ * Inversa exacta: L(XP) = floor((XP/100)^(1/1.6) + 1e-7) + 1, ajustado por búsqueda de frontera.
+ * Garantiza 0 fallos de frontera en L=1..150 y sanitización completa ante NaN o tipos corruptos.
  */
 export function calculateLevel(xp) {
-  const level = Math.max(1, Math.floor(Math.pow(Math.max(0, xp) / 100, 1 / 1.6)) + 1);
-  const currentBase = Math.floor(100 * Math.pow(level - 1, 1.6));
-  const nextBase = Math.floor(100 * Math.pow(level, 1.6));
-  const percent = Math.min(100, Math.max(0, Math.round(((xp - currentBase) / (nextBase - currentBase)) * 100)));
+  const numXP = Number(xp);
+  let cleanXP = 0;
+  if (numXP === Infinity || numXP >= 100000000) {
+    cleanXP = 100000000;
+  } else if (Number.isFinite(numXP)) {
+    cleanXP = Math.max(0, Math.floor(numXP));
+  }
+
+  let level = Math.floor(Math.pow(cleanXP / 100, 1 / 1.6) + 1e-7) + 1;
+  while (level > 1 && getLevelXP(level) > cleanXP) {
+    level--;
+  }
+  while (getLevelXP(level + 1) <= cleanXP) {
+    level++;
+  }
+
+  const currentBase = getLevelXP(level);
+  const nextBase = getLevelXP(level + 1);
+  const span = nextBase - currentBase;
+  const percent = span > 0 ? Math.min(100, Math.max(0, Math.round(((cleanXP - currentBase) / span) * 100))) : 100;
 
   let rank = 'Novato del Retrete';
   if (level >= 100) rank = '👑 Leyenda del Retrete';
@@ -65,32 +93,18 @@ export function calculateLevel(xp) {
   return {
     level,
     rank,
-    xp,
+    xp: cleanXP,
+    currentBase,
     nextBase,
     percent
   };
 }
 
 /**
- * Tabla de recompensas XP
+ * Recompensas XP unificadas (delega en calculateXPForAction de algorithms.js para garantizar única fuente de verdad)
  */
 export function getActionXP(action, rarity = 'COMMON') {
-  switch (action) {
-    case 'DISCOVERY':
-      if (rarity === 'MYTHIC') return 500;
-      if (rarity === 'LEGENDARY') return 250;
-      if (rarity === 'EPIC') return 150;
-      if (rarity === 'RARE') return 120;
-      return 100;
-    case 'VERIFICATION':
-      return 15;
-    case 'SECRET_FOUND':
-      return 150;
-    case 'PHOTO_USEFUL':
-      return 25;
-    default:
-      return 10;
-  }
+  return calculateXPForAction(action, { rarity });
 }
 
 /**

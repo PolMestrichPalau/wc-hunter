@@ -50,7 +50,7 @@ function nearbyCandidates(pos) {
   return store.wcs
     .filter(w => !w.hidden)
     .map(w => ({ wc: w, dist: calculateDistanceMeters(pos.lat, pos.lng, w.latitude, w.longitude) }))
-    .filter(x => x.dist <= NEAR_RADIUS)
+    .filter(x => Number.isFinite(x.dist) && x.dist <= NEAR_RADIUS)
     .sort((a, b) => a.dist - b.dist);
 }
 

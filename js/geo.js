@@ -30,14 +30,16 @@ export async function scanNearbyOsmToilets(lat, lng, radiusMeters = 2000) {
   const ctrl = typeof AbortController !== 'undefined' ? new AbortController() : null;
   const timer = ctrl ? setTimeout(() => ctrl.abort(), 7000) : null;
   try {
+    const safeLat = Math.max(-89.9, Math.min(89.9, Number(lat) || 0));
+    const safeLng = Number.isFinite(Number(lng)) ? Number(lng) : 0;
     const deltaLat = radiusMeters / 111320;
-    const cosLat = Math.cos((lat * Math.PI) / 180) || 1;
-    const deltaLng = radiusMeters / (111320 * Math.abs(cosLat));
+    const cosLat = Math.max(0.01, Math.cos((safeLat * Math.PI) / 180));
+    const deltaLng = radiusMeters / (111320 * cosLat);
 
-    const minLng = (lng - deltaLng).toFixed(5);
-    const maxLng = (lng + deltaLng).toFixed(5);
-    const minLat = (lat - deltaLat).toFixed(5);
-    const maxLat = (lat + deltaLat).toFixed(5);
+    const minLng = Math.max(-180, Math.min(180, safeLng - deltaLng)).toFixed(5);
+    const maxLng = Math.max(-180, Math.min(180, safeLng + deltaLng)).toFixed(5);
+    const minLat = Math.max(-90, safeLat - deltaLat).toFixed(5);
+    const maxLat = Math.min(90, safeLat + deltaLat).toFixed(5);
 
     const url = `https://nominatim.openstreetmap.org/search?format=json&amenity=toilets&viewbox=${minLng},${maxLat},${maxLng},${minLat}&bounded=1&limit=30&addressdetails=1`;
     const res = await fetch(url, {

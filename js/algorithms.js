@@ -56,6 +56,7 @@ export function calculateRarityAndDifficulty(wc) {
  * Tabla de XP para acciones del Hunter
  */
 export function calculateXPForAction(action, metadata = {}) {
+  const rarity = metadata.rarity || 'COMMON';
   switch (action) {
     case 'ADD_WC':
       return 50;
@@ -64,18 +65,22 @@ export function calculateXPForAction(action, metadata = {}) {
     case 'VERIFICATION':
       return 15;
     case 'ADD_PHOTO':
+    case 'PHOTO_USEFUL':
       return 20;
     case 'DISCOVERY':
       return 100;
     case 'DISCOVERY_CONFIRMED':
       return 50;
     case 'SECRET_WC_FOUND':
+    case 'SECRET_FOUND':
       return 150;
+    case 'TESTER_FEEDBACK':
+      return 20;
     case 'RARE_WC_FOUND':
-      if (metadata.rarity === 'MYTHIC') return 500;
-      if (metadata.rarity === 'LEGENDARY') return 250;
-      if (metadata.rarity === 'EPIC') return 100;
-      if (metadata.rarity === 'RARE') return 50;
+      if (rarity === 'MYTHIC') return 500;
+      if (rarity === 'LEGENDARY') return 250;
+      if (rarity === 'EPIC') return 100;
+      if (rarity === 'RARE') return 50;
       return 20;
     default:
       return 10;

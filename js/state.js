@@ -4,7 +4,7 @@
 import { INITIAL_USER, INITIAL_WCS, ACHIEVEMENTS_CATALOG, MISSIONS_LIST } from './seedData.js';
 import { calculateRarityAndDifficulty, calculateXPForAction } from './algorithms.js';
 import { calculateLevel } from './engines/gameEngine.js';
-import { calculateWCScore, calculateConfidence } from './engines/wcEngine.js';
+import { calculateWCScore, calculateConfidence, calculateDistanceMeters } from './engines/wcEngine.js';
 import { UNLOCKED_TITLES_POOL, getAchievementProgress } from './engines/userEngine.js';
 import { backend, rowToWc, describeError } from './backend.js';
 import { scanNearbyOsmToilets } from './geo.js';
@@ -343,17 +343,17 @@ class Store {
         bidet: eq.bidet ?? false,
         lock_functional: eq.lock_functional ?? true
       },
-      score: num(wc.score, 80),
+      score: num(wc.score, 75),
       score_breakdown: {
-        cleanliness: num(sb.cleanliness, 80),
-        odor: num(sb.odor, 80),
-        paper: num(sb.paper, 80),
-        soap: num(sb.soap, 80),
-        privacy: num(sb.privacy, 80),
-        condition: num(sb.condition, 80),
-        price: num(sb.price, 80)
+        cleanliness: num(sb.cleanliness, 75),
+        odor: num(sb.odor, 75),
+        paper: num(sb.paper, 75),
+        soap: num(sb.soap, 75),
+        privacy: num(sb.privacy, 75),
+        condition: num(sb.condition, 75),
+        price: num(sb.price, 75)
       },
-      confidence: num(wc.confidence, 85),
+      confidence: num(wc.confidence, 80),
       current_status: wc.current_status || 'open',
       personality_tag: wc.personality_tag || '🚽 EL TRONO',
       personality_desc: wc.personality_desc || '',
@@ -362,7 +362,7 @@ class Store {
       is_secret: Boolean(wc.is_secret),
       photos: Array.isArray(wc.photos) ? wc.photos : [],
       recent_reviews: Array.isArray(wc.recent_reviews) ? wc.recent_reviews.slice(-15) : [],
-      discovered_by: wc.discovered_by || 'PolM',
+      discovered_by: wc.discovered_by || 'Comunidad Hunter',
       discovered_date: wc.discovered_date || '',
       creator_name: wc.creator_name || '',
       reviews_count: reviews,
@@ -503,12 +503,15 @@ class Store {
   // ---- GAMIFICACIÓN ----
 
   addXP(amount, reason = '') {
+    const cleanAmount = Number.isFinite(Number(amount)) ? Math.max(0, Math.round(Number(amount))) : 0;
+    if (cleanAmount <= 0) return { level: this.user.level, xp: this.user.xp };
+
     const oldLevel = calculateLevel(this.user.xp).level;
-    this.user.xp += amount;
+    this.user.xp = (Number.isFinite(Number(this.user.xp)) ? Number(this.user.xp) : 0) + cleanAmount;
     const newLevelInfo = calculateLevel(this.user.xp);
     this.user.level = newLevelInfo.level;
 
-    this.showToast(`+${amount} XP ${reason ? `· ${reason}` : ''}`, 'xp');
+    this.showToast(`+${cleanAmount} XP ${reason ? `· ${reason}` : ''}`, 'xp');
 
     if (newLevelInfo.level > oldLevel) {
       this.showToast(`🎉 ¡SUBIDA DE NIVEL! Ahora eres Nivel ${newLevelInfo.level}: ${newLevelInfo.rank}`, 'level_up', 5000);
@@ -561,9 +564,30 @@ class Store {
     });
   }
 
-  /** Racha diaria: +1 si la ultima actividad fue ayer, reinicia si hubo hueco. */
-  touchStreak() {
-    const today = new Date().toISOString().slice(0, 10);
+  /** Recompensa controlada de feedback con cuota antifraude (máx. 1 recompensa de 20 XP cada 24 h) */
+  rewardFeedback() {
+    if (this.remote) return false;
+    const now = Date.now();
+    if (!Array.isArray(this.user.feedback_log)) this.user.feedback_log = [];
+    this.user.feedback_log = this.user.feedback_log.filter(t => now - t < 86400000);
+    if (this.user.feedback_log.length >= 1) {
+      this.showToast('ℹ️ Gracias por tu feedback. Ya recibiste la recompensa diaria (+20 XP).', 'info', 3500);
+      return false;
+    }
+    this.user.feedback_log.push(now);
+    this.addXP(calculateXPForAction('TESTER_FEEDBACK'), 'Feedback de Tester');
+    return true;
+  }
+
+  /** Racha diaria: +1 si la ultima actividad fue ayer, reinicia si hubo hueco o salto temporal. */
+  touchStreak(injectedNow = null) {
+    const d = injectedNow ? new Date(injectedNow) : new Date();
+    // Usar fecha del huso horario local del usuario (evita desajuste UTC nocturno)
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    const today = `${year}-${month}-${day}`;
+
     const last = this.user.last_active_date;
     if (last === today) return;
     if (!last) {
@@ -571,6 +595,7 @@ class Store {
     } else {
       const diffDays = Math.round((Date.parse(today) - Date.parse(last)) / 86400000);
       if (diffDays < 0) return; // Reloj alterado hacia el pasado: ignorar para no corromper la racha
+      // Si pasa más de 1 día (o el reloj salta hacia adelante), la racha se reinicia a 1
       this.user.streak_days = diffDays === 1 ? (this.user.streak_days || 0) + 1 : 1;
     }
     this.user.last_active_date = today;
@@ -657,7 +682,20 @@ class Store {
         else wc.would_return_ratio.no += 1;
       }
 
-      wc.recent_reports.push({ user_id: this.user.id, has_paper: typeof report.has_paper === 'boolean' ? report.has_paper : undefined });
+      wc.recent_reports.push({
+        user_id: this.user.id,
+        status: closed ? 'closed' : 'open',
+        has_paper: typeof report.has_paper === 'boolean' ? report.has_paper : undefined,
+        has_soap: typeof report.has_soap === 'boolean' ? report.has_soap : undefined,
+        timestamp: now
+      });
+      wc.recent_reports = wc.recent_reports.slice(-MAX_REPORTS_KEPT);
+    } else {
+      wc.recent_reports.push({
+        user_id: this.user.id,
+        status: 'closed',
+        timestamp: now
+      });
       wc.recent_reports = wc.recent_reports.slice(-MAX_REPORTS_KEPT);
     }
 
@@ -665,9 +703,10 @@ class Store {
     const cleanComment = String(report.comment || '').trim().slice(0, 280);
     const cleanCode = String(report.access_code || '').trim().slice(0, 60);
     if (cleanCode) wc.access_code = cleanCode;
+    const ratingVal = closed ? 1 : (report.cleanliness === 'clean' ? 5 : (report.cleanliness === 'dirty' ? 1 : 4));
+
     if (cleanComment) {
       if (!Array.isArray(wc.recent_reviews)) wc.recent_reviews = [];
-      const ratingVal = closed ? 1 : (report.cleanliness === 'clean' ? 5 : (report.cleanliness === 'dirty' ? 1 : 4));
       wc.recent_reviews.unshift({
         username: this.user.username || 'Hunter',
         avatar: this.user.avatar || '🧔‍♂️',
@@ -677,6 +716,30 @@ class Store {
       });
       wc.recent_reviews = wc.recent_reviews.slice(0, 15);
       if (!wc.hunter_tip) wc.hunter_tip = cleanComment;
+    }
+
+    // Historial formal de reseñas para el estimador Bayesiano (solo en reportes con inspección real, no cerrado)
+    if (!closed) {
+      if (!Array.isArray(wc.reviews)) wc.reviews = [];
+      const userClean = report.cleanliness === 'clean' ? 95 : (report.cleanliness === 'dirty' ? 25 : 70);
+      const userPaper = typeof report.has_paper === 'boolean' ? (report.has_paper ? 95 : 20) : (wc.equipment?.paper ? 90 : 30);
+      const userSoap = typeof report.has_soap === 'boolean' ? (report.has_soap ? 90 : 20) : (wc.equipment?.soap ? 85 : 40);
+      wc.reviews.unshift({
+        user_id: this.user.id,
+        user_reputation: this.user.reputation || 90,
+        score_breakdown: {
+          cleanliness: userClean,
+          paper: userPaper,
+          soap: userSoap,
+          odor: userClean >= 80 ? 85 : (userClean <= 30 ? 25 : 70),
+          privacy: 75,
+          condition: userClean,
+          price: wc.score_breakdown?.price ?? 75
+        },
+        overall_rating: ratingVal,
+        created_at: new Date(now).toISOString()
+      });
+      wc.reviews = wc.reviews.slice(0, 30);
     }
 
     // Guardar foto aportada por el cazador
@@ -694,11 +757,14 @@ class Store {
       photoBonus = 10;
     }
 
-    // Recalcular puntuaciones
+    // Un WC verificado por un cazador deja de ser "unrated"
+    wc.unrated = false;
+
+    // Recalcular puntuaciones con modelo Bayesiano y decaimiento continuo
     wc.verified_by_count = (wc.verified_by_count || 0) + 1;
     wc.reviews_count = (wc.reviews_count || 0) + 1;
-    wc.score = calculateWCScore(wc.score_breakdown);
-    wc.confidence = calculateConfidence(wc, wc.recent_reports).confidence;
+    wc.score = calculateWCScore(wc.score_breakdown, wc.reviews, now);
+    wc.confidence = calculateConfidence(wc, wc.recent_reports, now).confidence;
 
     // Usuario
     this.touchStreak();
@@ -708,11 +774,21 @@ class Store {
     this.checkAchievement('first_wc');
     this.checkContextAchievements(wc);
     this.syncProgressAchievements();
-    const baseXp = calculateXPForAction('VERIFICATION') + (cleanComment ? 10 : 0) + photoBonus;
-    const reasons = ['Verificación rápida'];
-    if (cleanComment) reasons.push('+ Consejo');
-    if (photoBonus) reasons.push('+ Foto');
-    this.addXP(baseXp, reasons.join(' '));
+
+    // Limite diario de XP por verificaciones (antifraude)
+    if (!Array.isArray(this.user.verification_log)) this.user.verification_log = [];
+    this.user.verification_log = this.user.verification_log.filter(t => now - t < 86400000);
+    const canEarnVerificationXP = this.user.verification_log.length < 10;
+    if (canEarnVerificationXP) {
+      this.user.verification_log.push(now);
+      const baseXp = calculateXPForAction('VERIFICATION') + (cleanComment ? 10 : 0) + photoBonus;
+      const reasons = ['Verificación rápida'];
+      if (cleanComment) reasons.push('+ Consejo');
+      if (photoBonus) reasons.push('+ Foto');
+      this.addXP(baseXp, reasons.join(' '));
+    } else {
+      this.showToast('⏳ Límite diario de XP por verificaciones alcanzado (10/24h). Verificación guardada.', 'info', 4000);
+    }
 
     this.notify('WC_VERIFIED', wc);
     return true;
@@ -731,6 +807,18 @@ class Store {
     }
     if (!Number.isFinite(lat) || !Number.isFinite(lng) || Math.abs(lat) > 90 || Math.abs(lng) > 180) {
       this.showToast('⚠️ Ubicación no válida. Elige un punto en el mapa.', 'info');
+      return false;
+    }
+
+    // Detección antifraude de duplicados (< 35 metros de un WC existente confirmado)
+    // Permite validar o enriquecer baños OSM sin valorar
+    const duplicate = this.wcs.find(w => {
+      if (w.unrated) return false;
+      const d = calculateDistanceMeters(lat, lng, w.latitude, w.longitude);
+      return Number.isFinite(d) && d < 35;
+    });
+    if (duplicate) {
+      this.showToast(`⚠️ Ya existe un WC registrado a menos de 35 metros ("${duplicate.name}").`, 'info', 4500);
       return false;
     }
 
@@ -804,9 +892,23 @@ class Store {
       discovered_date: new Date().toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: 'numeric' }),
       reviews_count: 1,
       verified_by_count: 1,
-      recent_reports: []
+      recent_reports: [{
+        user_id: this.user.id,
+        status: 'open',
+        has_paper: Boolean(data.paper ?? true),
+        has_soap: Boolean(data.soap ?? true),
+        timestamp: Date.now()
+      }],
+      reviews: [{
+        user_id: this.user.id,
+        user_reputation: this.user.reputation || 90,
+        score_breakdown: breakdown,
+        overall_rating: rating,
+        created_at: new Date().toISOString()
+      }]
     };
-    newWC.confidence = calculateConfidence(newWC).confidence;
+    newWC.score = calculateWCScore(breakdown, newWC.reviews);
+    newWC.confidence = calculateConfidence(newWC, newWC.recent_reports).confidence;
 
     this.wcs.unshift(newWC);
     this.touchStreak();
@@ -814,11 +916,13 @@ class Store {
     this.user.stats.visited_count++;
     this.user.verified_log[newWC.id] = Date.now();
 
-    // Limite diario de XP por descubrimientos (antifraude)
+    // Limite diario de XP por descubrimientos (antifraude: solo los premiados consumen cuota)
     const now = Date.now();
     this.user.discovery_log = this.user.discovery_log.filter(t => now - t < 86400000);
-    this.user.discovery_log.push(now);
-    const xpAllowed = this.user.discovery_log.length <= DISCOVERY_XP_PER_DAY;
+    const xpAllowed = this.user.discovery_log.length < DISCOVERY_XP_PER_DAY;
+    if (xpAllowed) {
+      this.user.discovery_log.push(now);
+    }
 
     this.registerVisit(newWC);
     this.checkAchievement('first_wc');
@@ -864,18 +968,17 @@ class Store {
     }
 
     let addedCount = 0;
-    const existingCoords = this.wcs.map(w => ({ lat: w.latitude, lng: w.longitude, id: w.id }));
-
     detected.forEach(osmWc => {
-      const isDuplicate = existingCoords.some(ex => {
+      const isDuplicate = this.wcs.some(ex => {
         if (ex.id === osmWc.id) return true;
-        const dLat = Math.abs(ex.lat - osmWc.latitude);
-        const dLng = Math.abs(ex.lng - osmWc.longitude);
-        return dLat < 0.00035 && dLng < 0.00035; // ~35 metros
+        const d = calculateDistanceMeters(ex.latitude, ex.longitude, osmWc.latitude, osmWc.longitude);
+        return Number.isFinite(d) && d < 35;
       });
       if (!isDuplicate) {
-        this.wcs.push(osmWc);
-        existingCoords.push({ lat: osmWc.latitude, lng: osmWc.longitude, id: osmWc.id });
+        const normalized = this.normalizeWc(osmWc);
+        normalized.unrated = true;
+        normalized.score = 0;
+        this.wcs.push(normalized);
         addedCount++;
       }
     });

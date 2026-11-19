@@ -225,7 +225,10 @@ export function openFeedbackModal() {
   };
 
   const markReward = () => {
-    store.addXP(20, 'Feedback de Tester');
+    const awarded = store.rewardFeedback();
+    if (awarded) {
+      store.showToast('💬 ¡Gracias por tu feedback! Has ganado +20 XP', 'success');
+    }
     modal.remove();
   };
 
@@ -239,7 +242,6 @@ export function openFeedbackModal() {
     }
     const waUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(formatted)}`;
     window.open(waUrl, '_blank');
-    store.showToast('💬 ¡Gracias por tu feedback! Has ganado +20 XP', 'success');
     markReward();
   });
 
@@ -252,7 +254,7 @@ export function openFeedbackModal() {
     }
     const mailto = `mailto:?subject=${encodeURIComponent(`WC Hunter Feedback: ${type}`)}&body=${encodeURIComponent(formatted)}`;
     window.location.href = mailto;
-    store.showToast('✉️ Abriendo tu cliente de email (+20 XP)', 'success');
+    store.showToast('✉️ Abriendo tu cliente de email...', 'info');
     markReward();
   });
 
@@ -265,7 +267,7 @@ export function openFeedbackModal() {
     }
     try {
       await navigator.clipboard.writeText(formatted);
-      store.showToast('📋 Feedback copiado al portapapeles (+20 XP)', 'success');
+      store.showToast('📋 Feedback copiado al portapapeles', 'info');
       markReward();
     } catch (e) {
       store.showToast('No se pudo copiar el texto', 'info');
